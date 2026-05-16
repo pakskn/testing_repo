@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── NextAuth User Management ─────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          String    @default("user")     // admin | user
+  status        String    @default("pending")  // pending | active | blocked
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  signInLogs    SignInLog[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  @@unique([identifier, token])
+}
+
+model SignInLog {
+  id         String   @id @default(cuid())
+  userId     String
+  signedInAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── YouTube Channel Research ─────────────────────────────────────────────────
+
+model Channel {
+  id                String   @id @default(cuid())
+  channelId         String   @unique
+  channelName       String
+  channelHandle     String?
+  thumbnailUrl      String?
+  subscribers       Int      @default(0)
+  totalVideos       Int      @default(0)
+  totalViews        BigInt   @default(0)
+  channelType       String
+  niche             String?
+  daysSinceStart    Int      @default(0)
+  avgViewsPerVideo  Float    @default(0)
+  outlierScore      Float    @default(0)
+  isMonetized       Boolean  @default(false)
+  isActive          Boolean  @default(true)
+  sortOrder         Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  videos            Video[]
+}
+
+model Video {
+  id           String    @id @default(cuid())
+  videoId      String    @unique
+  channelId    String
+  title        String
+  thumbnailUrl String?
+  views        BigInt    @default(0)
+  duration     String?
+  publishedAt  DateTime?
+  channel      Channel   @relation(fields: [channelId], references: [channelId])
+}
