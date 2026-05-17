@@ -1,19 +1,22 @@
 FROM node:20-alpine
 
-# Working directory set karo
 WORKDIR /app
 
-# Saari files copy karo (root se)
-COPY . .
-
-# Dependencies install karo
+# Package files pehle copy (better caching)
+COPY package*.json ./
 RUN npm ci --only=production=false
 
-# Next.js build karo
+# Saari files copy
+COPY . .
+
+# Prisma client generate
+RUN npx prisma generate
+
+# Next.js build
 RUN npm run build
 
-# Port expose
+# Production settings
+ENV NODE_ENV=production
 EXPOSE 3000
 
-# Start command
 CMD ["npm", "start"]
