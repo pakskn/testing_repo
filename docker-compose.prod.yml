@@ -1,0 +1,62 @@
+version: '3.8'
+
+# PRODUCTION VPS VERSION
+# Uses multi-stage production Dockerfile (not Dockerfile.dev)
+# Traefik handles SSL — no ports exposed directly
+# Run: docker-compose -f docker-compose.prod.yml up -d --build
+
+services:
+
+  postgres:
+    image: postgres:15
+    container_name: niche_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - niche_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nextjs:
+    build:
+      context: ./next-app
+      dockerfile: Dockerfile
+    container_name: niche_app
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY}
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - niche_network
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.niche.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.niche.entrypoints=websecure"
+      - "traefik.http.routers.niche.tls.certresolver=letsencrypt"
+      - "traefik.http.services.niche.loadbalancer.server.port=3000"
+      - "traefik.http.routers.niche-http.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.niche-http.entrypoints=web"
+      - "traefik.http.routers.niche-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+volumes:
+  postgres_data:
+
+networks:
+  niche_network:
+    driver: bridge
+  web:
+    external: true

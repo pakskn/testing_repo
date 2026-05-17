@@ -1,0 +1,22 @@
+name: 🚀 Deploy to niches.waqasalee.com via Coolify
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Trigger Coolify Deployment
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ✅ Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🚀 Trigger Coolify webhook
+        run: |
+          curl --silent --show-error \
+            -X GET "${{ secrets.COOLIFY_WEBHOOK_URL }}" \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}"
+          echo "Coolify deployment triggered!"

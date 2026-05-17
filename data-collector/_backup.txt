@@ -1,0 +1,75 @@
+# Real verified YouTube channels — all faceless/educational
+# Format: channel_id,niche,channel_type
+
+# ── Science & Education (animated/voiceover) ────────────────────────────────
+UCsXVk37bltHxD1rDPwtNM8Q,Science,long_form
+UCYO_jab_esuFRV4b17AJtAg,Science,long_form
+UCoxcjq-8xIDTYp3uz647V5A,Science,long_form
+UC7_gcs09iThXybpVgjHZ_7g,Education,long_form
+UCX6b17PVsYBQ0ip5gyeme-Q,Education,long_form
+UCC552Sd-3nyi_tk2BudLUzA,Science,long_form
+UCUHW94eEFW7hkUMVaZz4eDg,Science,long_form
+UCZYTClx2T1of7BRZ86-8fow,Science,long_form
+UCFhXFikryT4aFcLkLw2LBLA,Science,long_form
+UCP8ZgGrqR8wHKhV-fBa5dLA,Science,long_form
+UC6107grRI4m0o2-emgoDnAA,Science,long_form
+UCR1IuLEqb6UEA_zQ81kwXfg,Science,long_form
+UCrMePiHCWG4Vwqv3t7W9EFg,Science,long_form
+
+# ── Education / Explainer ────────────────────────────────────────────────────
+UCfdNM3NAhaBOXCafH7krzrA,Education,long_form
+UC4rlAVgAK0SGk-yTfe48Qpw,Education,long_form
+UCNMbegBD9OjH-QF73-pTbZg,History,long_form
+UCP5tjEmvPItGyLhmjdwP7Ww,Education,long_form
+UCuCkxoKLYO_EQ2GeFtbM_bw,Education,long_form
+UCmmPgObSUPw1HL2lq6H4cqg,Education,long_form
+UCiqbJVPBKHqHxMm9JJWX2dw,Education,long_form
+
+# ── History ──────────────────────────────────────────────────────────────────
+UCMmaBzfCCwZ2KqaBJjkj0fw,History,long_form
+UCv_vLHiWVBh2Gyx-kgV5SCg,History,long_form
+UCZHmQk67mSJgfCCTn7xBfew,History,long_form
+UCWX3yGbODI3HLCTMwMDgOFg,History,long_form
+UCMiJRAwDNSNzuYeN2uWa0pA,History,long_form
+UCHkYrJ_KCsRKKHZxGE1blaQ,History,long_form
+UCbXTbBEgx8C_saJKjAqn6HQ,History,long_form
+UC295-Dw4tzbAomB-QxoXV4A,History,long_form
+
+# ── Finance & Business ───────────────────────────────────────────────────────
+UCFTB3YTQVPmLmHiTTXolkEQ,Finance,long_form
+UC4QZ_LsYcvcq7qOsOhpAX4A,Finance,long_form
+UCFCEuCsyWP0YkP3CZ3Mr01Q,Finance,long_form
+UC6Kl5RQMaNDPBDFNsIdF_EQ,Finance,long_form
+UCnM6Q8BtcGcSoTZFT_L4jEA,Finance,long_form
+UCVjQQOOpAMBqxMtNiqs0EEA,Finance,long_form
+UCddiUEpeqJcYeBxX1IVBKvQ,Finance,long_form
+
+# ── True Crime / Crime ───────────────────────────────────────────────────────
+UCJXGnMFfMRGCJQSKFGIl5MA,Crime,long_form
+UCnUYZLuoy1rq1aVMwx4unkA,Crime,long_form
+UC3I2GFN_F8WudD_2jUZbENQ,Crime,long_form
+
+# ── Technology ───────────────────────────────────────────────────────────────
+UCZHmQk67mSJgfCCTn7xBfew,Technology,long_form
+UCBJycsmduvYEL83R_U4JriQ,Technology,long_form
+UCMOqf8ab-42UUQIdVoKwjlQ,Technology,long_form
+
+# ── Psychology / Self Improvement ────────────────────────────────────────────
+UC0C-w0YjGpqDXGB8IHb662A,Psychology,long_form
+UClnDI2sdehVm1zm_LmUHsjQ,Psychology,long_form
+
+# ── Health / Motivation ──────────────────────────────────────────────────────
+UCNjPtOCvMrKY5eLwr_-7eUg,Health,long_form
+UCdWqCB4oupbSbEL4DIHPBKA,Motivation,long_form
+
+# ── Travel / Geography ───────────────────────────────────────────────────────
+UCsooa4yRKGN_zEE8iknghZA,Travel,long_form
+UCGaVdbSav8xWuFWTadK6loA,Science,long_form
+
+# ── Sports ───────────────────────────────────────────────────────────────────
+UCVHdiHQH3JfaMiXMSsGJtOA,Sports,short_form
+UCeiYXex_fwgYDonkdFnMfdg,Sports,long_form
+
+# ── Short Form ───────────────────────────────────────────────────────────────
+UCwmFOfFuvRPI112vR5DNnrA,Finance,short_form
+UCVVjYMVPB_RYTNk5UA7fYoQ,Science,short_form

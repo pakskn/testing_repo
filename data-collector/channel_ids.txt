@@ -1,0 +1,21 @@
+# Second batch — faceless channels under 500K
+UCdMqVNKBNxYAZF8bfEKe0eg,History,long_form
+UCE5pjEeW2B46VcWvFULe9hQ,History,long_form
+UCHdWL-zQnGHgCPCIi3hCFMw,History,long_form
+UCvDyBFxGkJMT9f7kEGrAMkQ,Business,long_form
+UCxqAWLTk1CmBvZFPzeZMd9A,Science,long_form
+UCVc3pk7dZ_OFe5S8-GqUbww,Science,long_form
+UCRjIxGUgv4kPMOgIi1MbQ5g,Education,long_form
+UCR9Gcq0CMm6YgTzsDxAxjOQ,True Crime,long_form
+UCz1oFxMrm6lmzfR0bcy6yZA,Education,long_form
+UCDvkBoGuHBHZ2BTTq0vjuNQ,True Crime,long_form
+UCPNSzEA9k1tBWNMzUxmSBFg,Finance,long_form
+UCGcMwDpAYZPYiIPWz0JGqOA,Finance,long_form
+UCu3kTfJxSL6qDBH0mNDWsBg,Finance,long_form
+UCg_Ui9vdLEPFKQaRSUHJXSA,Wildlife,long_form
+UC3MXKQ_bTRnHGdDOV1EFKUA,True Crime,long_form
+UCQ1OLyMGqGMwVCB6TRNNKGA,True Crime,long_form
+UCWX3yGbODI3HLCTMwMDgOFg,History,long_form
+UCBJycsmduvYEL83R_U4JriQ,Technology,long_form
+UCO6oFpMUFcXpHbEDezLSHGQ,Science,long_form
+UCGjOGMnpBVm4jAGq0-oMASw,Psychology,long_form

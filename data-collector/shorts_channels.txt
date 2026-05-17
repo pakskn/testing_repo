@@ -1,0 +1,17 @@
+# Short Form channels — collector fetches only videos < 4min
+# These are real channels that post Shorts content
+UCwmFOfFuvRPI112vR5DNnrA,Science,short_form
+UCsXVk37bltHxD1rDPwtNM8Q,Science,short_form
+UCZYTClx2T1of7BRZ86-8fow,Science,short_form
+UCfdNM3NAhaBOXCafH7krzrA,Education,short_form
+UC4rlAVgAK0SGk-yTfe48Qpw,Education,short_form
+UCNMbegBD9OjH-QF73-pTbZg,History,short_form
+UCFTB3YTQVPmLmHiTTXolkEQ,Finance,short_form
+UC4QZ_LsYcvcq7qOsOhpAX4A,Finance,short_form
+UCP5tjEmvPItGyLhmjdwP7Ww,Education,short_form
+UCFhXFikryT4aFcLkLw2LBLA,Science,short_form
+UCrMePiHCWG4Vwqv3t7W9EFg,Science,short_form
+UCuCkxoKLYO_EQ2GeFtbM_bw,Education,short_form
+UCoxcjq-8xIDTYp3uz647V5A,Science,short_form
+UCUHW94eEFW7hkUMVaZz4eDg,Science,short_form
+UCX6b17PVsYBQ0ip5gyeme-Q,Education,short_form

@@ -1,0 +1,33 @@
+# ─── SECRETS — NEVER commit these ───────────────────────────────────────────
+.env
+.env.local
+.env.production
+
+next-app/.env
+next-app/.env.local
+next-app/.env.production
+
+data-collector/.env
+
+# ─── Node / Next.js ──────────────────────────────────────────────────────────
+node_modules/
+next-app/node_modules/
+next-app/.next/
+next-app/out/
+
+# ─── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyc
+data-collector/__pycache__/
+data-collector/.venv/
+
+# ─── SQLite local DB (local dev only) ────────────────────────────────────────
+next-app/prisma/dev.db
+next-app/prisma/dev.db-journal
+
+# ─── Build / temp ────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.log
+/tmp/
