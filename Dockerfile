@@ -2,14 +2,16 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Package files pehle copy (better caching)
+# Package files copy
 COPY package*.json ./
-RUN npm ci --only=production=false
+
+# Dependencies install (dev dependencies ke saath)
+RUN npm ci
 
 # Saari files copy
 COPY . .
 
-# Prisma client generate
+# Prisma generate
 RUN npx prisma generate
 
 # Next.js build
