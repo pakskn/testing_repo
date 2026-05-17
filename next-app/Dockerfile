@@ -13,8 +13,14 @@ COPY . .
 # Switch database provider to PostgreSQL for production build
 RUN sed -i 's/provider = "sqlite"/provider = "postgresql"/' prisma/schema.prisma
 
-# Generate Prisma client for PostgreSQL and build Next.js
+# Dummy DATABASE_URL for build time only — prisma generate needs it but doesn't connect
+# Real DATABASE_URL is injected at runtime by Coolify/Docker
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+
+# Generate Prisma client (uses schema only, no real DB connection needed)
 RUN npx prisma generate
+
+# Build Next.js app
 RUN npm run build
 
 # ─── Stage 3: Production runner ──────────────────────────────────────────────
