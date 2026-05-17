@@ -8,13 +8,13 @@ ENV DATABASE_URL=$DATABASE_URL
 # Sirf package files copy (caching ke liye)
 COPY package*.json ./
 
-# Dependencies install
-RUN npm ci
+# Dependencies install (postinstall skip karein)
+RUN npm ci --ignore-scripts
 
 # Baaki saari files copy
 COPY . .
 
-# Prisma client generate
+# Prisma client generate (ab DATABASE_URL available hai)
 RUN npx prisma generate
 
 # Next.js build
