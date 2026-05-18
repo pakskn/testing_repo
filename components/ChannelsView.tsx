@@ -24,6 +24,7 @@ export default function ChannelsView({ channelType, title }: ChannelsViewProps) 
   const [loadingMore, setLoadingMore] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [advFilters, setAdvFilters]   = useState<FilterValues>(DEFAULT_FILTERS)
+  const [similarTo, setSimilarTo]     = useState<string | null>(null) // channel name when showing similar
 
   // Count active advanced filters for badge
   const advActiveCount = [
@@ -95,9 +96,24 @@ export default function ChannelsView({ channelType, title }: ChannelsViewProps) 
     setPage(1)
   }
 
-  const hasMore = channels.length < total
+  // Similar Channels — filter by same niche
+  const handleFindSimilar = (niche: string, channelName: string) => {
+    setSimilarTo(channelName)
+    setAdvFilters({ ...DEFAULT_FILTERS, selectedNiches: [niche] })
+    setSearch('')
+    setPage(1)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const clearSimilar = () => {
+    setSimilarTo(null)
+    setAdvFilters(DEFAULT_FILTERS)
+    setPage(1)
+  }
+
+  const hasMore = (channels?.length ?? 0) < total
   const isFiltered = advActiveCount > 0 || search !== ''
-  const nicheLabel = advFilters.selectedNiches.length > 0
+  const nicheLabel = (advFilters?.selectedNiches?.length ?? 0) > 0
     ? ` in ${advFilters.selectedNiches.length === 1 ? advFilters.selectedNiches[0] : `${advFilters.selectedNiches.length} categories`}`
     : ''
 
@@ -153,11 +169,29 @@ export default function ChannelsView({ channelType, title }: ChannelsViewProps) 
         <SortOptions sort={sort} order={order} onSortChange={(s, o) => reset({ sort: s, order: o })} />
       </div>
 
+      {/* Similar Channels Banner */}
+      {similarTo && (
+        <div className="flex items-center gap-3 mb-3 px-4 py-2.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl">
+          <svg className="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span className="text-sm text-blue-700 dark:text-blue-300 flex-1">
+            Channels similar to <strong>{similarTo}</strong> — {advFilters.selectedNiches[0]} niche
+          </span>
+          <button
+            onClick={clearSimilar}
+            className="text-xs text-blue-500 hover:text-blue-700 dark:hover:text-blue-200 font-medium flex items-center gap-1 transition-colors"
+          >
+            ✕ Clear
+          </button>
+        </div>
+      )}
+
       {/* Results count */}
       <div className="flex items-center gap-3 mb-5 text-sm">
         <span className="text-gray-700 dark:text-gray-300 font-medium">
-          Showing {channels.length.toLocaleString()} of {total.toLocaleString()} Results
-          {advFilters.selectedNiches.length > 0 && (
+          Showing {(channels?.length ?? 0).toLocaleString()} of {total.toLocaleString()} Results
+          {advFilters.selectedNiches.length > 0 && !similarTo && (
             <span className="ml-1 text-gray-400 dark:text-gray-500">
               in {advFilters.selectedNiches.length === 1 ? advFilters.selectedNiches[0] : `${advFilters.selectedNiches.length} categories`}
             </span>
@@ -165,7 +199,7 @@ export default function ChannelsView({ channelType, title }: ChannelsViewProps) 
         </span>
         {isFiltered && (
           <button
-            onClick={() => { reset({ search: '' }); setAdvFilters(DEFAULT_FILTERS); setPage(1) }}
+            onClick={() => { reset({ search: '' }); setAdvFilters(DEFAULT_FILTERS); setSimilarTo(null); setPage(1) }}
             className="text-xs text-blue-500 hover:text-blue-600 underline transition-colors"
           >
             Clear all
@@ -194,7 +228,7 @@ export default function ChannelsView({ channelType, title }: ChannelsViewProps) 
             <>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">No channels match your filters</p>
               <button
-                onClick={() => { reset({ filter: 'all', search: '' }); setAdvFilters(DEFAULT_FILTERS); setPage(1) }}
+                onClick={() => { reset({ search: '' }); setAdvFilters(DEFAULT_FILTERS); setSimilarTo(null); setPage(1) }}
                 className="text-xs text-blue-500 hover:text-blue-600 underline transition-colors"
               >
                 Clear all filters
@@ -205,7 +239,13 @@ export default function ChannelsView({ channelType, title }: ChannelsViewProps) 
       ) : (
         <>
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-            {channels.map(ch => <ChannelCard key={ch.channelId} channel={ch} />)}
+            {channels.map(ch => (
+              <ChannelCard
+                key={ch.channelId}
+                channel={ch}
+                onFindSimilar={handleFindSimilar}
+              />
+            ))}
           </div>
           {hasMore && (
             <div className="flex justify-center mt-8">

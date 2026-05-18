@@ -1,0 +1,14 @@
+
+> niche-finder@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.3
+  - Local:        http://localhost:3000
+  - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 6.6s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 4.8s (175 modules)
+ ○ Compiling /channels/long-form ...
+ ✓ Compiled /channels/long-form in 27.6s (838 modules)

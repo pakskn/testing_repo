@@ -123,7 +123,10 @@ function useToast() {
   return { msg, show }
 }
 
-export default function ChannelCard({ channel }: { channel: Channel }) {
+export default function ChannelCard({ channel, onFindSimilar }: {
+  channel: Channel
+  onFindSimilar?: (niche: string, channelName: string) => void
+}) {
   const { text: scoreText, bg: scoreBg } = outlierColor(channel.outlierScore)
   const isShortForm = channel.channelType === 'short_form'
   const [expanded, setExpanded] = useState(false)
@@ -214,6 +217,20 @@ export default function ChannelCard({ channel }: { channel: Channel }) {
         )}
 
         <div className="flex flex-col items-end gap-1 flex-shrink-0">
+          {/* Similar Channels button — matches Filters button style */}
+          {channel.niche && onFindSimilar && (
+            <button
+              onClick={() => onFindSimilar(channel.niche!, channel.channelName)}
+              title={`Find channels similar to ${channel.channelName}`}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-[#2a2a2a] hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400 dark:hover:border-blue-500"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Similar
+            </button>
+          )}
+
           <div className="flex items-center gap-1 text-gray-400 dark:text-gray-600">
             {/* Save/Bookmark button */}
             <button
