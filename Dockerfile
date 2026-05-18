@@ -19,7 +19,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Switch SQLite → PostgreSQL for production
-RUN sed -i 's/provider = "sqlite"/provider = "postgresql"/' prisma/schema.prisma
+RUN sed -i 's/provider = "sqlite"/provider = "postgresql"/' prisma/schema.prisma || true
 
 # Dummy vars for build time ONLY — real values injected at runtime
 ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
