@@ -1,13 +1,13 @@
 # ═══════════════════════════════════════════════════════
 #  Niche Finder — Multi-Stage Production Dockerfile
-#  Build context: repo root  |  next-app/ is the source
+#  Build context: repo root (files are at root now)
 # ═══════════════════════════════════════════════════════
 
 # ── Stage 1: Dependencies ────────────────────────────────
 FROM node:20-alpine AS deps
 WORKDIR /app
 RUN apk add --no-cache libc6-compat openssl
-COPY next-app/package.json next-app/package-lock.json* ./
+COPY package.json package-lock.json* ./
 RUN npm ci
 
 # ── Stage 2: Builder ─────────────────────────────────────
@@ -16,21 +16,20 @@ WORKDIR /app
 RUN apk add --no-cache openssl
 
 COPY --from=deps /app/node_modules ./node_modules
-# Copy entire next-app/ into build context root
-COPY next-app/ .
+COPY . .
 
-# Production: switch SQLite → PostgreSQL in schema
+# Switch SQLite → PostgreSQL for production
 RUN sed -i 's/provider = "sqlite"/provider = "postgresql"/' prisma/schema.prisma
 
 # Dummy vars for build time ONLY — real values injected at runtime
 ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
-ENV NEXTAUTH_SECRET="build-time-only-not-used"
+ENV NEXTAUTH_SECRET="build-time-only"
 ENV NEXTAUTH_URL="http://localhost:3000"
 
-# Generate Prisma client (reads schema, no DB connection)
+# Generate Prisma client (schema only, no DB connection)
 RUN npx prisma generate
 
-# Build Next.js standalone output
+# Build Next.js standalone
 RUN npm run build
 
 # ── Stage 3: Runner ──────────────────────────────────────
