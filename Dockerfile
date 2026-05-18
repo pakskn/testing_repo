@@ -1,43 +1,60 @@
-# ─── Stage 1: Install dependencies ──────────────────────────────────────────
+# ═══════════════════════════════════════════════════════
+#  Niche Finder — Multi-Stage Production Dockerfile
+#  Build context: repo root  |  next-app/ is the source
+# ═══════════════════════════════════════════════════════
+
+# ── Stage 1: Dependencies ────────────────────────────────
 FROM node:20-alpine AS deps
 WORKDIR /app
-COPY package.json package-lock.json* ./
+RUN apk add --no-cache libc6-compat openssl
+COPY next-app/package.json next-app/package-lock.json* ./
 RUN npm ci
 
-# ─── Stage 2: Build ──────────────────────────────────────────────────────────
+# ── Stage 2: Builder ─────────────────────────────────────
 FROM node:20-alpine AS builder
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+RUN apk add --no-cache openssl
 
-# Switch database provider to PostgreSQL for production build
+COPY --from=deps /app/node_modules ./node_modules
+# Copy entire next-app/ into build context root
+COPY next-app/ .
+
+# Production: switch SQLite → PostgreSQL in schema
 RUN sed -i 's/provider = "sqlite"/provider = "postgresql"/' prisma/schema.prisma
 
-# Dummy DATABASE_URL for build time only — prisma generate needs it but doesn't connect
-# Real DATABASE_URL is injected at runtime by Coolify/Docker
-ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+# Dummy vars for build time ONLY — real values injected at runtime
+ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
+ENV NEXTAUTH_SECRET="build-time-only-not-used"
+ENV NEXTAUTH_URL="http://localhost:3000"
 
-# Generate Prisma client (uses schema only, no real DB connection needed)
+# Generate Prisma client (reads schema, no DB connection)
 RUN npx prisma generate
 
-# Build Next.js app
+# Build Next.js standalone output
 RUN npm run build
 
-# ─── Stage 3: Production runner ──────────────────────────────────────────────
+# ── Stage 3: Runner ──────────────────────────────────────
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser  --system --uid 1001 nextjs
+RUN apk add --no-cache openssl curl
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser  --system --uid 1001 nextjs
 
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/public                              ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone  ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static      ./.next/static
+COPY --from=builder /app/prisma                              ./prisma
+COPY --from=builder /app/node_modules/.prisma                ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma                ./node_modules/@prisma
 
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:3000 || exit 1
+
 CMD ["node", "server.js"]

@@ -1,13 +1,11 @@
 version: '3.8'
-
-# ─── Coolify Deployment — niches.waqasalee.com ───────────────────────────────
-# Environment variables Coolify dashboard se set karo (repo mein mat daalo)
-# Domain routing Coolify ke UI se configure karo → port 3000
+# ── COOLIFY DEPLOYMENT ────────────────────────────────────
+# Set env vars in Coolify dashboard — NOT here
+# Domain routing handled by Coolify's proxy
 
 services:
-
   postgres:
-    image: postgres:15
+    image: postgres:15-alpine
     container_name: niche_db
     restart: always
     environment:
@@ -24,7 +22,7 @@ services:
 
   app:
     build:
-      context: ./next-app
+      context: .
       dockerfile: Dockerfile
     container_name: niche_app
     restart: always
