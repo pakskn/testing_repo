@@ -1,13 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-
-function fmt(n: number, type: 'number' | 'currency' | 'score' | 'seconds'): string {
-  if (type === 'currency') return `$${n >= 1_000_000 ? (n/1_000_000).toFixed(1)+'M' : n >= 1_000 ? (n/1_000).toFixed(0)+'K' : n}`
-  if (type === 'score')    return `${n}x`
-  if (type === 'seconds')  return n === 0 ? '0s' : n >= 3600 ? `${(n/3600).toFixed(0)}h` : `${(n/60).toFixed(0)}m`
-  return n >= 1_000_000 ? `${(n/1_000_000).toFixed(1)}M` : n >= 1_000 ? `${(n/1_000).toFixed(0)}K` : `${n}`
-}
+import NumberInput from './NumberInput'
 
 interface Props {
   label: string
@@ -16,68 +10,53 @@ interface Props {
   minVal: number
   maxVal: number
   step?: number
-  format?: 'number' | 'currency' | 'score' | 'seconds'
+  arrowStep?: number    // NumberInput arrow step (default 1000)
   onChange: (min: number, max: number) => void
 }
 
-export default function RangeSlider({ label, min, max, minVal, maxVal, step = 1, format = 'number', onChange }: Props) {
-  const [localMin, setLocalMin] = useState(minVal)
-  const [localMax, setLocalMax] = useState(maxVal)
+export default function RangeSlider({
+  label, min, max, minVal, maxVal,
+  step = 1, arrowStep = 1_000, onChange,
+}: Props) {
+  const [lv, setLv] = useState(minVal)
+  const [rv, setRv] = useState(maxVal)
 
-  useEffect(() => { setLocalMin(minVal) }, [minVal])
-  useEffect(() => { setLocalMax(maxVal) }, [maxVal])
+  useEffect(() => { setLv(minVal) }, [minVal])
+  useEffect(() => { setRv(maxVal) }, [maxVal])
 
-  const pctMin = ((localMin - min) / (max - min)) * 100
-  const pctMax = ((localMax - min) / (max - min)) * 100
+  const pctL = ((lv - min) / (max - min)) * 100
+  const pctR = ((rv - min) / (max - min)) * 100
 
-  const commitMin = (v: number) => {
-    const val = Math.min(v, localMax - step)
-    setLocalMin(val)
-    onChange(val, localMax)
+  const commitL = (v: number) => {
+    const clamped = Math.min(v, rv - step)
+    setLv(clamped); onChange(clamped, rv)
   }
-  const commitMax = (v: number) => {
-    const val = Math.max(v, localMin + step)
-    setLocalMax(val)
-    onChange(localMin, val)
+  const commitR = (v: number) => {
+    const clamped = Math.max(v, lv + step)
+    setRv(clamped); onChange(lv, clamped)
   }
 
   return (
     <div>
-      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">{label}</p>
-      <div className="relative h-5">
-        {/* Track */}
+      <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-3">{label}</p>
+      <div className="relative h-5 mb-3">
         <div className="absolute top-[9px] left-0 right-0 h-[3px] bg-gray-200 dark:bg-[#333] rounded-full" />
-        {/* Fill */}
-        <div
-          className="absolute top-[9px] h-[3px] bg-blue-600 rounded-full"
-          style={{ left: `${pctMin}%`, right: `${100 - pctMax}%` }}
-        />
-        {/* Min thumb */}
-        <input
-          type="range" min={min} max={max} step={step} value={localMin}
-          onChange={e => { setLocalMin(+e.target.value) }}
-          onMouseUp={e => commitMin(+(e.target as HTMLInputElement).value)}
-          onTouchEnd={e => commitMin(+(e.target as HTMLInputElement).value)}
-          className="dual-thumb"
-          style={{ zIndex: localMin >= max - step ? 5 : 3 }}
-        />
-        {/* Max thumb */}
-        <input
-          type="range" min={min} max={max} step={step} value={localMax}
-          onChange={e => { setLocalMax(+e.target.value) }}
-          onMouseUp={e => commitMax(+(e.target as HTMLInputElement).value)}
-          onTouchEnd={e => commitMax(+(e.target as HTMLInputElement).value)}
-          className="dual-thumb"
-          style={{ zIndex: 4 }}
-        />
+        <div className="absolute top-[9px] h-[3px] bg-blue-500 rounded-full"
+          style={{ left: `${pctL}%`, right: `${100 - pctR}%` }} />
+        <input type="range" min={min} max={max} step={step} value={lv}
+          onChange={e => setLv(+e.target.value)}
+          onMouseUp={e => commitL(+(e.target as HTMLInputElement).value)}
+          onTouchEnd={e => commitL(+(e.target as HTMLInputElement).value)}
+          className="dual-thumb" style={{ zIndex: lv >= max - step ? 5 : 3 }} />
+        <input type="range" min={min} max={max} step={step} value={rv}
+          onChange={e => setRv(+e.target.value)}
+          onMouseUp={e => commitR(+(e.target as HTMLInputElement).value)}
+          onTouchEnd={e => commitR(+(e.target as HTMLInputElement).value)}
+          className="dual-thumb" style={{ zIndex: 4 }} />
       </div>
-      <div className="flex gap-2 mt-3">
-        <div className="flex-1 bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-[#2a2a2a] rounded-lg px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 text-center">
-          {fmt(localMin, format)}
-        </div>
-        <div className="flex-1 bg-gray-50 dark:bg-[#111] border border-gray-200 dark:border-[#2a2a2a] rounded-lg px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 text-center">
-          {fmt(localMax, format)}
-        </div>
+      <div className="grid grid-cols-2 gap-2">
+        <NumberInput value={lv} onChange={commitL} min={min} max={rv} step={arrowStep} />
+        <NumberInput value={rv} onChange={commitR} min={lv} max={max} step={arrowStep} />
       </div>
     </div>
   )

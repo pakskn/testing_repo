@@ -81,10 +81,31 @@ model Channel {
   outlierScore      Float    @default(0)
   isMonetized       Boolean  @default(false)
   isActive          Boolean  @default(true)
+  isKids            Boolean  @default(false)
+  isNews            Boolean  @default(false)
+  isEntertainment   Boolean  @default(false)
+  isFaceless        Boolean  @default(false)
+  isNano            Boolean  @default(false)
   sortOrder         Int      @default(0)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   videos            Video[]
+
+  @@index([isActive, channelType])
+  @@index([isActive, channelType, niche])
+  @@index([isActive, outlierScore])
+  @@index([isActive, subscribers])
+  @@index([isActive, avgViewsPerVideo])
+  @@index([isActive, sortOrder])
+  @@index([isActive, isKids])
+  @@index([isActive, isNews])
+  @@index([isActive, isEntertainment])
+  @@index([isActive, isFaceless])
+  @@index([niche])
+  @@index([subscribers])
+  @@index([outlierScore])
+  @@index([sortOrder])
+  @@index([channelType, isActive, sortOrder])
 }
 
 model Video {
@@ -96,5 +117,13 @@ model Video {
   views        BigInt    @default(0)
   duration     String?
   publishedAt  DateTime?
+  isOutlier    Boolean   @default(false)
+  isNano       Boolean   @default(false)
   channel      Channel   @relation(fields: [channelId], references: [channelId])
+
+  @@index([channelId])
+  @@index([channelId, views])
+  @@index([views])
+  @@index([isOutlier])
+  @@index([publishedAt])
 }

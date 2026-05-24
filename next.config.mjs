@@ -8,6 +8,17 @@ const nextConfig = {
       { protocol: 'https', hostname: 'yt3.googleusercontent.com' },
     ],
   },
+  webpack: (config, { dev }) => {
+    if (dev) {
+      // Suppress chrome-extension fetch errors from Next.js dev overlay
+      config.ignoreWarnings = [
+        ...(config.ignoreWarnings || []),
+        { message: /Failed to fetch/ },
+        { message: /chrome-extension/ },
+      ]
+    }
+    return config
+  },
 }
 
 export default nextConfig

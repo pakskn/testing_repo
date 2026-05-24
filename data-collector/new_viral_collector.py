@@ -9,7 +9,8 @@ Finds long_form channels:
 
 Quota usage: ~3 units/channel (efficient playlist method)
 """
-import sys, io, sqlite3, uuid, requests, isodate
+import sys, io, uuid, requests, isodate
+from db_helper import get_connection
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 import os
@@ -17,8 +18,10 @@ import os
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 load_dotenv()
 
-API_KEY  = os.getenv('YOUTUBE_API_KEY')
-DB_PATH  = '../next-app/prisma/dev.db'  # actual data DB (123 channels)
+# ── Auto-rotating API key manager ────────────────────────
+from api_key_manager import APIKeyManager, safe_api_call
+km      = APIKeyManager()
+DB_PATH = '../prisma/dev.db'
 
 # ── Thresholds ──────────────────────────────────────────
 MIN_SUBS    = 1_000
@@ -122,46 +125,63 @@ SEARCH_QUERIES = [
 
 # ─────────────────────────────────────────────────────────
 def search_channels(query, max_results=10):
-    r = requests.get("https://www.googleapis.com/youtube/v3/search", params={
-        "part": "snippet", "type": "channel",
-        "q": query, "maxResults": max_results, "key": API_KEY,
-    }).json()
-    if r.get("error"):
-        print(f"    ⚠️  API Error: {r['error']['code']} — {r['error']['message'][:60]}")
-        return []
-    return [item['id']['channelId'] for item in r.get('items', [])]
+    result = safe_api_call(
+        lambda key: requests.get("https://www.googleapis.com/youtube/v3/search", params={
+            "part": "snippet", "type": "channel",
+            "q": query, "maxResults": max_results, "key": key,
+        }).json(),
+        km
+    )
+    if not result: return []
+    return [item['id']['channelId'] for item in result.get('items', [])]
 
 def get_channel_full(channel_id):
-    r = requests.get("https://www.googleapis.com/youtube/v3/channels", params={
-        "part": "snippet,statistics,contentDetails",
-        "id": channel_id, "key": API_KEY,
-    }).json()
-    return r['items'][0] if r.get('items') else None
+    result = safe_api_call(
+        lambda key: requests.get("https://www.googleapis.com/youtube/v3/channels", params={
+            "part": "snippet,statistics,contentDetails",
+            "id": channel_id, "key": key,
+        }).json(),
+        km
+    )
+    if not result or not result.get('items'): return None
+    return result['items'][0]
 
 def get_latest_upload_date(uploads_playlist_id):
-    r = requests.get("https://www.googleapis.com/youtube/v3/playlistItems", params={
-        "part": "snippet", "playlistId": uploads_playlist_id,
-        "maxResults": 1, "key": API_KEY,
-    }).json()
-    items = r.get('items', [])
+    result = safe_api_call(
+        lambda key: requests.get("https://www.googleapis.com/youtube/v3/playlistItems", params={
+            "part": "snippet", "playlistId": uploads_playlist_id,
+            "maxResults": 1, "key": key,
+        }).json(),
+        km
+    )
+    if not result: return None
+    items = result.get('items', [])
     if not items: return None
     pub = items[0]['snippet'].get('publishedAt', '')
     return datetime.fromisoformat(pub.replace('Z', '+00:00')) if pub else None
 
 def get_top_videos(channel_id, uploads_playlist_id, max_results=5):
-    pl = requests.get("https://www.googleapis.com/youtube/v3/playlistItems", params={
-        "part": "snippet", "playlistId": uploads_playlist_id,
-        "maxResults": max_results * 3, "key": API_KEY,
-    }).json()
+    pl = safe_api_call(
+        lambda key: requests.get("https://www.googleapis.com/youtube/v3/playlistItems", params={
+            "part": "snippet", "playlistId": uploads_playlist_id,
+            "maxResults": max_results * 3, "key": key,
+        }).json(),
+        km
+    )
+    if not pl: return []
     items = pl.get("items", [])
     if not items: return []
     vids = [i["snippet"]["resourceId"]["videoId"] for i in items
             if i["snippet"].get("resourceId", {}).get("kind") == "youtube#video"]
     if not vids: return []
-    vr = requests.get("https://www.googleapis.com/youtube/v3/videos", params={
-        "part": "snippet,statistics,contentDetails",
-        "id": ",".join(vids[:50]), "key": API_KEY,
-    }).json()
+    vr = safe_api_call(
+        lambda key: requests.get("https://www.googleapis.com/youtube/v3/videos", params={
+            "part": "snippet,statistics,contentDetails",
+            "id": ",".join(vids[:50]), "key": key,
+        }).json(),
+        km
+    )
+    if not vr: return []
     videos = vr.get("items", [])
     videos.sort(key=lambda v: int(v.get("statistics", {}).get("viewCount", 0)), reverse=True)
     return videos[:max_results]
@@ -184,7 +204,7 @@ def save_channel(conn, data):
             "subscribers","totalVideos","totalViews","channelType","niche",
             "daysSinceStart","avgViewsPerVideo","outlierScore","isMonetized",
             "isActive","sortOrder","createdAt","updatedAt"
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,0,?,?)
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,true,0,?,?)
         ON CONFLICT ("channelId") DO UPDATE SET
             "channelName"=excluded."channelName","thumbnailUrl"=excluded."thumbnailUrl",
             "subscribers"=excluded."subscribers","totalVideos"=excluded."totalVideos",
@@ -194,7 +214,7 @@ def save_channel(conn, data):
     """, (str(uuid.uuid4()), data['channelId'], data['channelName'], data['channelHandle'],
           data['thumbnailUrl'], data['subscribers'], data['totalVideos'], data['totalViews'],
           'long_form', data['niche'], data['daysSinceStart'], data['avgViewsPerVideo'],
-          data['outlierScore'], 1 if data['isMonetized'] else 0, now, now))
+          data['outlierScore'], data['isMonetized'], now, now))
     conn.commit()
 
 def save_video(conn, data):
@@ -213,9 +233,10 @@ def main():
     print("  New & Viral Faceless Channel Finder — v2")
     print(f"  Subs: {MIN_SUBS:,} – {MAX_SUBS:,}  |  Outlier: {MIN_OUTLIER}x+")
     print(f"  Active in last {DAYS_ACTIVE} days  |  Target: {TARGET} channels")
+    km.print_status()
     print("=" * 70)
 
-    conn    = sqlite3.connect(DB_PATH)
+    conn    = get_connection()
     cutoff  = datetime.now(timezone.utc) - timedelta(days=DAYS_ACTIVE)
     seen    = set()
     results = []
@@ -323,7 +344,7 @@ def main():
         print(f"       ✓ {vids_saved} videos saved")
         saved += 1
 
-    total_lf = conn.execute('SELECT COUNT(*) FROM "Channel" WHERE "channelType"="long_form"').fetchone()[0]
+    total_lf = conn.execute('SELECT COUNT(*) FROM "Channel" WHERE "channelType"=\'long_form\'').fetchone()[0]
     conn.close()
 
     print("\n" + "=" * 70)

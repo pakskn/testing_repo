@@ -39,7 +39,13 @@ export default function AdminChannels() {
   const [total, setTotal]         = useState(0)
   const [page, setPage]           = useState(1)
   const [search, setSearch]       = useState('')
-  const [typeFilter, setTypeFilter] = useState('')
+  // Read type from URL on mount
+  const [typeFilter, setTypeFilter] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return new URLSearchParams(window.location.search).get('type') || ''
+    }
+    return ''
+  })
   const [loading, setLoading]     = useState(true)
   const [deleting, setDeleting]   = useState<string | null>(null)
 

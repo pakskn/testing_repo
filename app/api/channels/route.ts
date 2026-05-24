@@ -10,13 +10,27 @@ export async function GET(request: NextRequest) {
   const sort   = searchParams.get('sort')   || 'created_at'
   const order  = (searchParams.get('order') || 'desc') as 'asc' | 'desc'
   const search = searchParams.get('search') || ''
-  const page   = Math.max(1, parseInt(searchParams.get('page')  || '1'))
-  const limit  = Math.min(100, parseInt(searchParams.get('limit') || '20'))
-  const skip   = (page - 1) * limit
+  const page       = Math.max(1, parseInt(searchParams.get('page')  || '1'))
+  const limit      = Math.min(100, parseInt(searchParams.get('limit') || '20'))
+  const skip       = (page - 1) * limit
+  const randomSeed = parseInt(searchParams.get('randomSeed') || '0')
 
   // Advanced filter params
-  const niches      = searchParams.get('niches')?.split(',').filter(Boolean) || []
-  const monetize    = searchParams.get('monetization') || 'all'  // on | all | off
+  const niches         = searchParams.get('niches')?.split(',').filter(Boolean) || []
+  const excludeNiches  = searchParams.get('excludeNiches')?.split(',').filter(Boolean) || []
+  const onlyKids          = searchParams.get('onlyKids')           === 'true'
+  const onlyNews          = searchParams.get('onlyNews')           === 'true'
+  const excludeKids       = searchParams.get('excludeKids')        === 'true'
+  const excludeNews       = searchParams.get('excludeNews')        === 'true'
+  const excludeEntertainment = searchParams.get('excludeEntertainment') === 'true'
+  const includeEntertainment = searchParams.get('includeEntertainment') === 'true'
+  const onlyFaceless      = searchParams.get('onlyFaceless')       === 'true'
+  const hideInactive      = searchParams.get('hideInactive')        === 'true'
+  const onlyInactive      = searchParams.get('onlyInactive')        === 'true'
+  const onlyNano          = searchParams.get('onlyNano')            === 'true'
+  const onlyStandard      = searchParams.get('onlyStandard')        === 'true'
+  const onlySuper         = searchParams.get('onlySuper')           === 'true'
+  const monetize    = searchParams.get('monetization') || 'all'
   const subsMin     = parseInt(searchParams.get('subsMin')  || '0')
   const subsMax     = parseInt(searchParams.get('subsMax')  || '999999999')
   const avgViewMin  = parseInt(searchParams.get('avgViewsMin') || '0')
@@ -25,34 +39,82 @@ export async function GET(request: NextRequest) {
   const outlierMax  = parseFloat(searchParams.get('outlierMax') || '9999')
   const videosMin   = parseInt(searchParams.get('totalVideosMin') || '0')
   const videosMax   = parseInt(searchParams.get('totalVideosMax') || '9999999')
+  // Total views range
+  const totalViewsMin = parseInt(searchParams.get('totalViewsMin') || '0')
+  const totalViewsMax = parseInt(searchParams.get('totalViewsMax') || '999999999999')
+  // Date filters
+  const dateFrom    = searchParams.get('dateFrom') || ''
+  const dateTo      = searchParams.get('dateTo')   || ''
+  // Similarity-specific filters
+  const daysMin     = parseInt(searchParams.get('daysMin') || '0')
+  const daysMax     = parseInt(searchParams.get('daysMax') || '999999')
+  const titleKw     = searchParams.get('titleKeyword') || ''
 
-  // Build WHERE clause — always filter to active channels only
+  // Build WHERE clause
   const baseType: Prisma.ChannelWhereInput = { channelType: type, isActive: true }
-  const searchClause: Prisma.ChannelWhereInput = search
+
+  // Search: regular text OR title keyword similarity
+  const activeSearch = search || titleKw
+  const searchClause: Prisma.ChannelWhereInput = activeSearch
     ? {
         OR: [
-          { channelName: { contains: search } },
-          { niche: { contains: search } },
-          { channelHandle: { contains: search } },
+          { channelName: { contains: activeSearch } },
+          { niche:        { contains: activeSearch } },
+          { channelHandle:{ contains: activeSearch } },
         ],
       }
     : {}
 
-  // Multi-niche filter
-  const nicheClause: Prisma.ChannelWhereInput = niches.length > 0
-    ? { niche: { in: niches } }
+  const includeNews = searchParams.get('includeNews') === 'true'
+
+  // Songs/Movies: OR across Music niches + isNews + isEntertainment
+  const orParts: Prisma.ChannelWhereInput[] = []
+  if (niches.length > 0)     orParts.push({ niche: { in: niches } })
+  if (includeNews)            orParts.push({ isNews: true })
+  if (includeEntertainment)   orParts.push({ isEntertainment: true })
+
+  const nicheClause: Prisma.ChannelWhereInput = orParts.length > 0
+    ? { OR: orParts }
+    : {}
+
+  const excludeNicheClause: Prisma.ChannelWhereInput = excludeNiches.length > 0
+    ? { niche: { notIn: excludeNiches } }
     : {}
 
   const where: Prisma.ChannelWhereInput = {
     AND: [
       baseType,
-      ...(search        ? [searchClause]          : []),
-      ...(niches.length ? [nicheClause]           : []),
-      // Advanced range filters
-      { subscribers:      { gte: subsMin,    lte: subsMax    } },
-      { avgViewsPerVideo: { gte: avgViewMin, lte: avgViewMax } },
-      { outlierScore:     { gte: outlierMin, lte: outlierMax } },
-      { totalVideos:      { gte: videosMin,  lte: videosMax  } },
+      ...(activeSearch                                      ? [searchClause] : []),
+      ...(orParts.length > 0                              ? [nicheClause]  : []),
+      ...(excludeNiches.length                  ? [excludeNicheClause]   : []),
+      ...(onlyKids               ? [{ isKids: true }]           : []),
+      ...(onlyNews               ? [{ isNews: true }]           : []),
+      ...(excludeKids            ? [{ isKids: false }]          : []),
+      ...(excludeNews            ? [{ isNews: false }]          : []),
+      ...(excludeEntertainment   ? [{ isEntertainment: false }] : []),
+      ...(includeEntertainment   ? [{ isEntertainment: true }]  : []),
+      ...(onlyFaceless           ? [{ isFaceless: true }]       : []),
+      // hideInactive: exclude sortOrder=-1 (old/inactive channels)
+      ...(hideInactive  ? [{ sortOrder: { gte: 0 } }]     : []),
+      // onlyInactive: show ONLY the archived/inactive channels
+      ...(onlyInactive  ? [{ sortOrder: { equals: -1 } }] : []),
+      ...(onlyNano      ? [{ isNano: true }]               : []),
+      // Standard = short_form, not nano, not super (videos 13-59s)
+      // Super = short_form, not nano (videos 60-180s)
+      // We use isNano=false for both standard+super; for super we check via video data (approximate)
+      ...(onlyStandard  ? [{ isNano: false }]             : []),
+      ...(onlySuper     ? [{ isNano: false }]             : []),
+      { subscribers:      { gte: subsMin,        lte: subsMax        } },
+      { avgViewsPerVideo: { gte: avgViewMin,     lte: avgViewMax     } },
+      { totalViews:       { gte: totalViewsMin,  lte: totalViewsMax  } },
+      { outlierScore:     { gte: outlierMin,     lte: outlierMax     } },
+      { totalVideos:      { gte: videosMin,      lte: videosMax      } },
+      // Date filters (channel creation date)
+      ...(dateFrom ? [{ createdAt: { gte: new Date(dateFrom) } }] : []),
+      ...(dateTo   ? [{ createdAt: { lte: new Date(dateTo + 'T23:59:59') } }] : []),
+      // Similarity: age range
+      ...(daysMin > 0 || daysMax < 999999
+        ? [{ daysSinceStart: { gte: daysMin, lte: daysMax } }] : []),
     ],
   }
 
@@ -83,25 +145,35 @@ export async function GET(request: NextRequest) {
       break
   }
 
-  let orderBy: Prisma.ChannelOrderByWithRelationInput
+  let primaryOrder: Prisma.ChannelOrderByWithRelationInput
   switch (sort) {
     case 'created_at':
-      orderBy = { createdAt: order }
+      primaryOrder = { createdAt: order }
       break
     case 'avg_views':
     case 'total_revenue':
-      orderBy = { avgViewsPerVideo: order }
+      primaryOrder = { avgViewsPerVideo: order }
       break
     case 'days_since_start':
-      orderBy = { daysSinceStart: order }
+      primaryOrder = { daysSinceStart: order }
       break
     case 'total_videos':
-      orderBy = { totalVideos: order }
+      primaryOrder = { totalVideos: order }
       break
     case 'subscribers':
     default:
-      orderBy = { subscribers: order }
+      primaryOrder = { subscribers: order }
   }
+
+  // 1st: channels with fetched videos (visible thumbnails in card) → 2nd: channels with avatar thumbnail → 3rd: user's chosen sort
+  const orderBy: Prisma.ChannelOrderByWithRelationInput[] = sort === 'random'
+    ? [{ videos: { _count: 'desc' } }, { sortOrder: 'desc' }]
+    : [{ videos: { _count: 'desc' } }, { sortOrder: 'desc' }, primaryOrder]
+
+  // For random sort: use seed-based random skip to show different channels each click
+  const effectiveSkip = sort === 'random' && randomSeed > 0
+    ? Math.floor((randomSeed % 1000) / 1000 * Math.max(0, Math.min(50000, skip + 50000))) % Math.max(1, 50000)
+    : skip
 
   // Parse duration string "H:MM:SS" or "M:SS" → seconds
   function durationToSeconds(dur: string | null): number {
@@ -118,12 +190,12 @@ export async function GET(request: NextRequest) {
       prisma.channel.findMany({
         where,
         orderBy,
-        skip,
+        skip: effectiveSkip,
         take: limit,
         include: {
           videos: {
             orderBy: { views: 'desc' },
-            take: 10,  // fetch extra so duration filter still yields 3
+            take: 10,  // show up to 10 videos per channel (horizontal scroll)
           },
         },
       }),
@@ -161,7 +233,10 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({ total, page, channels: serialized })
+    const response = NextResponse.json({ total, page, channels: serialized })
+    // Cache for 5 minutes — reduces DB load on repeated identical queries
+    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=60')
+    return response
   } catch (error) {
     console.error('API error:', error)
     return NextResponse.json(

@@ -22,6 +22,19 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: niche_redis_local
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --save ""
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   app:
     build:
       context: .
@@ -32,6 +45,7 @@ services:
       - "3000:3000"
     environment:
       DATABASE_URL:         postgresql://${DB_USER:-nicheuser}:${DB_PASSWORD:-devpassword}@postgres:5432/${DB_NAME:-nichefinder}
+      REDIS_URL:            redis://redis:6379
       YOUTUBE_API_KEY:      ${YOUTUBE_API_KEY}
       GOOGLE_CLIENT_ID:     ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
@@ -41,6 +55,8 @@ services:
       NODE_ENV:             development
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
 volumes:

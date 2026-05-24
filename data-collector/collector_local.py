@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 API_KEY = os.getenv("YOUTUBE_API_KEY")
-DB_PATH = os.getenv("DATABASE_URL", "../next-app/prisma/dev.db")
+DB_PATH = os.getenv("DATABASE_URL", "../prisma/dev.db")
 
 # Strip "file:" prefix if present (Prisma uses file:./dev.db)
 if DB_PATH.startswith("file:"):

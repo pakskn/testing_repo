@@ -1,21 +1,88 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import SortOptions from './SortOptions'
 import SearchBar from './SearchBar'
 import ChannelCard from './ChannelCard'
 import NicheDropdown from './NicheDropdown'
 import AdvancedFilters, { FilterValues, DEFAULT_FILTERS } from './AdvancedFilters'
 import { Channel, ChannelsResponse, SortType, OrderType } from '@/types'
+import { type SimilarRequest } from './ChannelCard'
+
+const fmtN = (n: number) => n >= 1_000_000 ? `${(n/1_000_000).toFixed(1)}M` : n >= 1_000 ? `${(n/1_000).toFixed(0)}K` : String(n)
+
+function InfiniteScrollSentinel({ loading, onLoadMore }: { loading: boolean; onLoadMore: () => void }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const cb = useCallback((entries: IntersectionObserverEntry[]) => {
+    if (entries[0].isIntersecting && !loading) onLoadMore()
+  }, [loading, onLoadMore])
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const obs = new IntersectionObserver(cb, { rootMargin: '300px' })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [cb])
+
+  return (
+    <div ref={ref} className="flex justify-center py-8">
+      {loading && (
+        <div className="flex items-center gap-2 text-gray-400 dark:text-gray-600 text-sm">
+          <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin" />
+          Loading more...
+        </div>
+      )}
+    </div>
+  )
+}
 
 interface ChannelsViewProps {
   channelType: string
   title: string
+  defaultNiches?: string[]
+  excludeNiches?: string[]
+  onlyKids?: boolean
+  onlyNews?: boolean
+  includeNews?: boolean
+  excludeKids?: boolean
+  excludeNews?: boolean
+  excludeEntertainment?: boolean
+  includeEntertainment?: boolean
+  onlyFaceless?: boolean
+  hideInactive?: boolean
+  onlyInactive?: boolean
+  onlyNano?: boolean
+  onlyStandard?: boolean
+  onlySuper?: boolean
 }
 
-export default function ChannelsView({ channelType, title }: ChannelsViewProps) {
+export default function ChannelsView({
+  channelType, title,
+  defaultNiches = [], excludeNiches = [],
+  onlyKids = false, onlyNews = false, includeNews = false,
+  excludeKids = false, excludeNews = false,
+  excludeEntertainment = false, includeEntertainment = false,
+  onlyFaceless = false,
+  hideInactive = false,
+  onlyInactive = false,
+  onlyNano = false,
+  onlyStandard = false,
+  onlySuper = false,
+}: ChannelsViewProps) {
   const [sort, setSort]       = useState<SortType>('created_at')
   const [order, setOrder]     = useState<OrderType>('desc')
+  const [randomSeed, setRandomSeed] = useState(() => Math.floor(Math.random() * 9999))
+
+  // Read ?q= param from URL on mount (set when user clicks channel niche in VideoCard)
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get('q')
+    if (q) {
+      setSearch(q)
+      // Clean URL without reload
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
   const [search, setSearch]   = useState('')
   const [page, setPage]       = useState(1)
   const [channels, setChannels] = useState<Channel[]>([])
@@ -23,8 +90,14 @@ export default function ChannelsView({ channelType, title }: ChannelsViewProps) 
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
-  const [advFilters, setAdvFilters]   = useState<FilterValues>(DEFAULT_FILTERS)
-  const [similarTo, setSimilarTo]     = useState<string | null>(null) // channel name when showing similar
+  const [advFilters, setAdvFilters]   = useState<FilterValues>({
+    ...DEFAULT_FILTERS,
+    selectedNiches: defaultNiches,
+  })
+  const [similarTo, setSimilarTo]     = useState<string | null>(null)
+  const [similarType, setSimilarType] = useState<string>('')
+  const [daysRange, setDaysRange]     = useState<{ min: number; max: number } | null>(null)
+  const [titleKw, setTitleKw]         = useState('')
 
   // Count active advanced filters for badge
   const advActiveCount = [
@@ -52,18 +125,39 @@ export default function ChannelsView({ channelType, title }: ChannelsViewProps) 
           order,
           search,
           page: page.toString(),
+          ...(sort === 'random' ? { randomSeed: randomSeed.toString() } : {}),
           limit: '20',
-          // Advanced filter params
-          niches:          advFilters.selectedNiches.join(','),
-          monetization:    advFilters.monetization,
-          subsMin:         String(advFilters.subsMin),
-          subsMax:         String(advFilters.subsMax),
-          avgViewsMin:     String(advFilters.avgViewsMin),
-          avgViewsMax:     String(advFilters.avgViewsMax),
-          outlierMin:      String(advFilters.outlierMin),
-          outlierMax:      String(advFilters.outlierMax),
-          totalVideosMin:  String(advFilters.totalVideosMin),
-          totalVideosMax:  String(advFilters.totalVideosMax),
+          niches:           advFilters.selectedNiches.join(','),
+          excludeNiches:    excludeNiches.join(','),
+          ...(onlyKids             ? { onlyKids:             'true' } : {}),
+          ...(onlyNews             ? { onlyNews:             'true' } : {}),
+          ...(includeNews          ? { includeNews:          'true' } : {}),
+          ...(excludeKids          ? { excludeKids:          'true' } : {}),
+          ...(excludeNews          ? { excludeNews:          'true' } : {}),
+          ...(excludeEntertainment ? { excludeEntertainment: 'true' } : {}),
+          ...(includeEntertainment ? { includeEntertainment: 'true' } : {}),
+          ...(onlyFaceless         ? { onlyFaceless:         'true' } : {}),
+          ...(hideInactive         ? { hideInactive:         'true' } : {}),
+          ...(onlyInactive         ? { onlyInactive:         'true' } : {}),
+          ...(onlyNano             ? { onlyNano:             'true' } : {}),
+          ...(onlyStandard         ? { onlyStandard:         'true' } : {}),
+          ...(onlySuper            ? { onlySuper:            'true' } : {}),
+          monetization:     advFilters.monetization,
+          subsMin:          String(advFilters.subsMin),
+          subsMax:          String(advFilters.subsMax),
+          avgViewsMin:      String(advFilters.avgViewsMin),
+          avgViewsMax:      String(advFilters.avgViewsMax),
+          totalViewsMin:    String(advFilters.totalViewsMin),
+          totalViewsMax:    String(advFilters.totalViewsMax),
+          outlierMin:       String(advFilters.outlierMin),
+          outlierMax:       String(advFilters.outlierMax),
+          totalVideosMin:   String(advFilters.totalVideosMin),
+          totalVideosMax:   String(advFilters.totalVideosMax),
+          ...(advFilters.dateFrom ? { dateFrom: advFilters.dateFrom } : {}),
+          ...(advFilters.dateTo   ? { dateTo:   advFilters.dateTo   } : {}),
+          // Similarity-specific params
+          ...(daysRange ? { daysMin: String(daysRange.min), daysMax: String(daysRange.max) } : {}),
+          ...(titleKw   ? { titleKeyword: titleKw } : {}),
         })
         const res  = await fetch(`/api/channels?${params}`)
         const json: ChannelsResponse = await res.json()
@@ -82,10 +176,14 @@ export default function ChannelsView({ channelType, title }: ChannelsViewProps) 
 
     load()
     return () => { cancelled = true }
-  }, [channelType, sort, order, search, page, advFilters])
+  }, [channelType, sort, order, search, page, advFilters, daysRange, titleKw, randomSeed])
 
   const reset = (updates: { sort?: SortType; order?: OrderType; search?: string }) => {
-    if (updates.sort   !== undefined) setSort(updates.sort)
+    if (updates.sort   !== undefined) {
+      setSort(updates.sort)
+      // Each time Random is clicked, generate a new seed for different results
+      if (updates.sort === 'random') setRandomSeed(Math.floor(Math.random() * 999999))
+    }
     if (updates.order  !== undefined) setOrder(updates.order)
     if (updates.search !== undefined) setSearch(updates.search)
     setPage(1)
@@ -96,23 +194,57 @@ export default function ChannelsView({ channelType, title }: ChannelsViewProps) 
     setPage(1)
   }
 
-  // Similar Channels — filter by same niche
-  const handleFindSimilar = (niche: string, channelName: string) => {
-    setSimilarTo(channelName)
-    setAdvFilters({ ...DEFAULT_FILTERS, selectedNiches: [niche] })
+  // Similar Channels — multi-type handler
+  const handleFindSimilar = (req: SimilarRequest) => {
+    setSimilarTo(req.channelName)
+    setSimilarType(req.type)
+    // Reset all similarity state first
+    setDaysRange(null)
+    setTitleKw('')
+    setAdvFilters(DEFAULT_FILTERS)
     setSearch('')
+
+    switch (req.type) {
+      case 'niche':
+        setAdvFilters({ ...DEFAULT_FILTERS, selectedNiches: req.niches ?? [] })
+        break
+      case 'related_niches':
+        setAdvFilters({ ...DEFAULT_FILTERS, selectedNiches: req.niches ?? [] })
+        break
+      case 'title':
+        setTitleKw(req.keyword ?? '')
+        break
+      case 'same_age':
+        setDaysRange({ min: req.daysMin ?? 0, max: req.daysMax ?? 999999 })
+        break
+      case 'similar_size':
+        setAdvFilters({ ...DEFAULT_FILTERS, subsMin: req.subsMin ?? 0, subsMax: req.subsMax ?? 999999999 })
+        break
+    }
     setPage(1)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const clearSimilar = () => {
     setSimilarTo(null)
+    setSimilarType('')
+    setDaysRange(null)
+    setTitleKw('')
     setAdvFilters(DEFAULT_FILTERS)
     setPage(1)
   }
 
+  // Human-readable similar type label
+  const similarTypeLabel: Record<string, string> = {
+    niche:          '🏷️ Same Niche',
+    related_niches: '🔗 Related Niches',
+    title:          '📝 Similar Titles',
+    same_age:       '📅 Started Same Time',
+    similar_size:   '👤 Similar Size',
+  }
+
   const hasMore = (channels?.length ?? 0) < total
-  const isFiltered = advActiveCount > 0 || search !== ''
+  const isFiltered = advActiveCount > 0 || search !== '' || !!daysRange || !!titleKw
   const nicheLabel = (advFilters?.selectedNiches?.length ?? 0) > 0
     ? ` in ${advFilters.selectedNiches.length === 1 ? advFilters.selectedNiches[0] : `${advFilters.selectedNiches.length} categories`}`
     : ''
@@ -171,17 +303,25 @@ export default function ChannelsView({ channelType, title }: ChannelsViewProps) 
 
       {/* Similar Channels Banner */}
       {similarTo && (
-        <div className="flex items-center gap-3 mb-3 px-4 py-2.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl">
-          <svg className="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          <span className="text-sm text-blue-700 dark:text-blue-300 flex-1">
-            Channels similar to <strong>{similarTo}</strong> — {advFilters.selectedNiches[0]} niche
-          </span>
-          <button
-            onClick={clearSimilar}
-            className="text-xs text-blue-500 hover:text-blue-700 dark:hover:text-blue-200 font-medium flex items-center gap-1 transition-colors"
-          >
+        <div className="flex items-center gap-3 mb-3 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/40 px-2 py-0.5 rounded-full">
+                {similarTypeLabel[similarType] || '🔍 Similar'}
+              </span>
+              <span className="text-sm text-blue-700 dark:text-blue-300">
+                Similar to <strong>{similarTo}</strong>
+              </span>
+            </div>
+            <p className="text-[11px] text-blue-500 dark:text-blue-400 mt-0.5">
+              {similarType === 'niche' && `Showing channels in "${advFilters.selectedNiches[0]}" niche`}
+              {similarType === 'related_niches' && `Showing ${advFilters.selectedNiches.length} related niches`}
+              {similarType === 'title' && `Searching for keyword: "${titleKw}"`}
+              {similarType === 'same_age' && `Channels from ${daysRange?.min} to ${daysRange?.max} days old`}
+              {similarType === 'similar_size' && `Channels with ${fmtN(advFilters.subsMin)}–${fmtN(advFilters.subsMax)} subscribers`}
+            </p>
+          </div>
+          <button onClick={clearSimilar} className="text-xs text-blue-500 hover:text-blue-700 dark:hover:text-blue-200 font-medium flex-shrink-0 transition-colors">
             ✕ Clear
           </button>
         </div>
@@ -247,17 +387,9 @@ export default function ChannelsView({ channelType, title }: ChannelsViewProps) 
               />
             ))}
           </div>
+          {/* Infinite scroll sentinel — auto loads when visible */}
           {hasMore && (
-            <div className="flex justify-center mt-8">
-              <button
-                onClick={() => setPage(p => p + 1)}
-                disabled={loadingMore}
-                className="flex items-center gap-2 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] text-gray-700 dark:text-white px-8 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-[#252525] hover:border-gray-300 dark:hover:border-[#3a3a3a] transition-all disabled:opacity-50 text-sm font-medium shadow-sm dark:shadow-none"
-              >
-                {loadingMore && <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />}
-                {loadingMore ? 'Loading...' : `Load More (${total - channels.length} remaining)`}
-              </button>
-            </div>
+            <InfiniteScrollSentinel loading={loadingMore} onLoadMore={() => setPage(p => p + 1)} />
           )}
         </>
       )}

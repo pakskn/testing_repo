@@ -1,5 +1,5 @@
-import ChannelsView from '@/components/ChannelsView'
+import ContentView from '@/components/ContentView'
 export const metadata = { title: 'Terminated Channels — Niche Finder' }
-export default function TerminatedPage() {
-  return <ChannelsView channelType="terminated" title="Terminated Channels" />
+export default function Page() {
+  return <ContentView channelType="terminated" title="Terminated Channels" />
 }

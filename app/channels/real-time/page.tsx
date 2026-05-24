@@ -1,5 +1,5 @@
-import ChannelsView from '@/components/ChannelsView'
+import ContentView from '@/components/ContentView'
 export const metadata = { title: 'Real Time Channels — Niche Finder' }
-export default function RealTimePage() {
-  return <ChannelsView channelType="real_time" title="Real Time Channels" />
+export default function Page() {
+  return <ContentView channelType="real_time" title="Real Time Channels" />
 }

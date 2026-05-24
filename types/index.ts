@@ -47,6 +47,7 @@ export type SortType =
   | 'days_since_start'
   | 'total_videos'
   | 'total_revenue'
+  | 'random'
 
 export type OrderType = 'asc' | 'desc'
 

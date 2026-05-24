@@ -1,3 +1,14 @@
-﻿node_modules/
+node_modules/
 .next/
-.env/
+.env*
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+.key_state.json
+tsconfig.tsbuildinfo
+__pycache__/
+*.pyc
+*.log
+fetch_err.txt
+fetch_out.txt

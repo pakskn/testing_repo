@@ -1,7 +1,20 @@
 'use client'
 
 import { Channel } from '@/types'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { getRelatedNiches, describeRelated } from '@/lib/nicheGroups'
+
+export type SimilarRequest = {
+  type: 'niche' | 'related_niches' | 'title' | 'same_age' | 'similar_size'
+  channelName: string
+  niche?: string
+  niches?: string[]
+  keyword?: string
+  daysMin?: number
+  daysMax?: number
+  subsMin?: number
+  subsMax?: number
+}
 
 function formatNumber(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -69,6 +82,8 @@ function VideoThumbnail({ videoId, storedUrl, title, duration, isShortForm = fal
           key={currentSrc}
           src={currentSrc}
           alt={title}
+          loading="lazy"
+          decoding="async"
           className="w-full h-full object-cover group-hover:opacity-75 transition-opacity"
           onError={handleError}
         />
@@ -101,6 +116,8 @@ function ChannelAvatar({ channelId, thumbnailUrl, channelName }: {
         <img
           src={thumbnailUrl}
           alt={channelName}
+          loading="lazy"
+          decoding="async"
           className="w-10 h-10 rounded-full object-cover ring-2 ring-gray-200 dark:ring-[#2a2a2a]"
           onError={() => setFailed(true)}
         />
@@ -117,6 +134,99 @@ function ChannelAvatar({ channelId, thumbnailUrl, channelName }: {
   )
 }
 
+function VideoScroller({ videos, isShortForm }: { videos: Channel['videos']; isShortForm: boolean }) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft,  setCanScrollLeft]  = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+
+  const checkScroll = () => {
+    const el = scrollRef.current
+    if (!el) return
+    setCanScrollLeft(el.scrollLeft > 4)
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+  }
+
+  // After render, check actual scrollability
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const t = setTimeout(() => {
+      const overflows = el.scrollWidth > el.clientWidth + 4
+      setCanScrollRight(overflows)
+    }, 150)
+    return () => clearTimeout(t)
+  }, [videos])
+
+  // Also re-check on window resize
+  useEffect(() => {
+    const handler = () => checkScroll()
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
+
+  const scroll = (dir: 'left' | 'right') => {
+    const el = scrollRef.current
+    if (!el) return
+    const step = el.clientWidth / 3 * 3
+    el.scrollBy({ left: dir === 'right' ? step : -step, behavior: 'smooth' })
+  }
+
+  const ARROW_BTN = 'w-6 h-6 bg-gray-200 dark:bg-[#333] hover:bg-gray-300 dark:hover:bg-[#444] text-gray-700 dark:text-gray-200 rounded-full flex items-center justify-center transition-all text-base leading-none select-none flex-shrink-0'
+
+  return (
+    <div className="border-t border-gray-100 dark:border-[#2a2a2a] p-4">
+
+      {/* Header row — arrows here in the title bar */}
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[10px] text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-widest">
+          Most Popular Videos
+        </span>
+        <div className="flex items-center gap-1">
+          {canScrollLeft && (
+            <button onClick={() => scroll('left')} className={ARROW_BTN} title="Previous">‹</button>
+          )}
+          {canScrollRight && (
+            <button onClick={() => scroll('right')} className={ARROW_BTN} title="More videos">›</button>
+          )}
+        </div>
+      </div>
+
+      {/* Scrollable videos — full width, no arrows inside */}
+      <div
+        ref={scrollRef}
+        onScroll={checkScroll}
+        className="flex gap-2 overflow-x-auto pb-1"
+        style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+      >
+        {videos.map(video => (
+          <a
+            key={video.videoId}
+            href={`https://youtube.com/watch?v=${video.videoId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group"
+            style={{ flex: '0 0 calc(34% - 4px)', minWidth: 'calc(34% - 4px)' }}
+          >
+            <VideoThumbnail
+              videoId={video.videoId}
+              storedUrl={video.thumbnailUrl}
+              title={video.title}
+              duration={video.duration}
+              isShortForm={isShortForm}
+            />
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-1 group-hover:text-gray-900 dark:group-hover:text-white transition-colors leading-tight mt-0.5">
+              {video.title}
+            </p>
+            <p className="text-[10px] text-gray-400 dark:text-gray-600 mt-0.5">
+              {formatNumber(video.views)} · {timeAgo(video.publishedAt)}
+            </p>
+          </a>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function useToast() {
   const [msg, setMsg] = useState('')
   const show = (m: string) => { setMsg(m); setTimeout(() => setMsg(''), 2000) }
@@ -125,7 +235,7 @@ function useToast() {
 
 export default function ChannelCard({ channel, onFindSimilar }: {
   channel: Channel
-  onFindSimilar?: (niche: string, channelName: string) => void
+  onFindSimilar?: (req: SimilarRequest) => void
 }) {
   const { text: scoreText, bg: scoreBg } = outlierColor(channel.outlierScore)
   const isShortForm = channel.channelType === 'short_form'
@@ -151,6 +261,50 @@ export default function ChannelCard({ channel, onFindSimilar }: {
       setSaved(!saved)
       showToast(saved ? 'Removed from saved' : 'Saved!')
     } catch {}
+  }
+
+  // Similar dropdown
+  const [showSimilarMenu, setShowSimilarMenu] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowSimilarMenu(false)
+      }
+    }
+    if (showSimilarMenu) document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showSimilarMenu])
+
+  // Helper: extract keywords from channel name
+  const titleKeyword = (() => {
+    const stopwords = ['the','a','an','and','or','of','in','on','at','to','for','with','by','is','are','was']
+    return channel.channelName
+      .toLowerCase()
+      .replace(/[^a-zA-Z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter(w => w.length > 2 && !stopwords.includes(w))
+      .slice(0, 2)
+      .join(' ')
+  })()
+
+  // Helper: days range ±10% with min ±5 days
+  const getDaysRange = () => {
+    const d = channel.daysSinceStart
+    const spread = Math.max(5, Math.floor(d * 0.1))
+    return { daysMin: Math.max(0, d - spread), daysMax: d + spread }
+  }
+
+  // Helper: subscriber range ±10%
+  const getSubsRange = () => ({
+    subsMin: Math.max(100, Math.floor(channel.subscribers * 0.9)),
+    subsMax: Math.ceil(channel.subscribers * 1.1),
+  })
+
+  const fireSimilar = (req: SimilarRequest) => {
+    setShowSimilarMenu(false)
+    onFindSimilar?.(req)
   }
 
   const handleShare = async () => {
@@ -217,18 +371,117 @@ export default function ChannelCard({ channel, onFindSimilar }: {
         )}
 
         <div className="flex flex-col items-end gap-1 flex-shrink-0">
-          {/* Similar Channels button — matches Filters button style */}
-          {channel.niche && onFindSimilar && (
-            <button
-              onClick={() => onFindSimilar(channel.niche!, channel.channelName)}
-              title={`Find channels similar to ${channel.channelName}`}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-[#2a2a2a] hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400 dark:hover:border-blue-500"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              Similar
-            </button>
+          {/* Similar Channels dropdown */}
+          {onFindSimilar && (
+            <div ref={menuRef} className="relative">
+              <button
+                onClick={() => setShowSimilarMenu(s => !s)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                  showSimilarMenu
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-[#2a2a2a] hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400'
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Similar
+                <svg className={`w-2.5 h-2.5 transition-transform ${showSimilarMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* Dropdown menu */}
+              {showSimilarMenu && (
+                <div className="absolute right-0 top-full mt-1.5 w-64 bg-white dark:bg-[#1c1c1c] border border-gray-200 dark:border-[#2a2a2a] rounded-xl shadow-xl z-50 overflow-hidden">
+                  {/* Header */}
+                  <div className="px-3 py-2 bg-gray-50 dark:bg-[#111] border-b border-gray-100 dark:border-[#222]">
+                    <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                      Find Similar to {channel.channelName.slice(0, 20)}{channel.channelName.length > 20 ? '...' : ''}
+                    </p>
+                  </div>
+
+                  {/* Options */}
+                  <div className="py-1">
+
+                    {/* Same Niche */}
+                    {channel.niche && (
+                      <button
+                        onClick={() => fireSimilar({ type: 'niche', channelName: channel.channelName, niches: [channel.niche!] })}
+                        className="w-full flex items-start gap-2.5 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors text-left"
+                      >
+                        <span className="text-base mt-0.5">🏷️</span>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">Same Niche</p>
+                          <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{channel.niche} channels only</p>
+                        </div>
+                      </button>
+                    )}
+
+                    {/* Related Niches */}
+                    {channel.niche && (
+                      <button
+                        onClick={() => fireSimilar({ type: 'related_niches', channelName: channel.channelName, niches: getRelatedNiches(channel.niche!) })}
+                        className="w-full flex items-start gap-2.5 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors text-left"
+                      >
+                        <span className="text-base mt-0.5">🔗</span>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">Related Niches</p>
+                          <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{describeRelated(channel.niche!)}</p>
+                        </div>
+                      </button>
+                    )}
+
+                    {/* Similar Titles */}
+                    {titleKeyword && (
+                      <button
+                        onClick={() => fireSimilar({ type: 'title', channelName: channel.channelName, keyword: titleKeyword })}
+                        className="w-full flex items-start gap-2.5 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors text-left"
+                      >
+                        <span className="text-base mt-0.5">📝</span>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">Similar Titles</p>
+                          <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">Keyword: &quot;{titleKeyword}&quot;</p>
+                        </div>
+                      </button>
+                    )}
+
+                    {/* Same Age */}
+                    {channel.daysSinceStart > 0 && (
+                      <button
+                        onClick={() => fireSimilar({ type: 'same_age', channelName: channel.channelName, ...getDaysRange() })}
+                        className="w-full flex items-start gap-2.5 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors text-left"
+                      >
+                        <span className="text-base mt-0.5">📅</span>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">Started Around Same Time</p>
+                          <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                            {Math.max(0, channel.daysSinceStart - Math.max(5, Math.floor(channel.daysSinceStart * 0.1)))}–
+                            {channel.daysSinceStart + Math.max(5, Math.floor(channel.daysSinceStart * 0.1))} days old (±10%)
+                          </p>
+                        </div>
+                      </button>
+                    )}
+
+                    {/* Similar Size */}
+                    <button
+                      onClick={() => fireSimilar({ type: 'similar_size', channelName: channel.channelName, ...getSubsRange() })}
+                      className="w-full flex items-start gap-2.5 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors text-left"
+                    >
+                      <span className="text-base mt-0.5">👤</span>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">Similar Subscriber Count</p>
+                        <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                          {formatNumber(Math.max(100, Math.floor(channel.subscribers * 0.9)))}–
+                          {formatNumber(Math.ceil(channel.subscribers * 1.1))} subs (±10%)
+                        </p>
+                      </div>
+                    </button>
+
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           <div className="flex items-center gap-1 text-gray-400 dark:text-gray-600">
@@ -289,41 +542,9 @@ export default function ChannelCard({ channel, onFindSimilar }: {
         </div>
       </div>
 
-      {/* ── Most Popular Videos ── */}
+      {/* ── Most Popular Videos — 3 visible, arrow + scroll to see 4-10 ── */}
       {channel.videos.length > 0 && (
-        <div className="border-t border-gray-100 dark:border-[#2a2a2a] p-4">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-widest">
-              Most Popular Videos
-            </span>
-            <span className="text-gray-300 dark:text-gray-600 text-xs">→</span>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {channel.videos.slice(0, 3).map(video => (
-              <a
-                key={video.videoId}
-                href={`https://youtube.com/watch?v=${video.videoId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group"
-              >
-                <VideoThumbnail
-                  videoId={video.videoId}
-                  storedUrl={video.thumbnailUrl}
-                  title={video.title}
-                  duration={video.duration}
-                  isShortForm={isShortForm}
-                />
-                <p className="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-1 group-hover:text-gray-900 dark:group-hover:text-white transition-colors leading-tight">
-                  {video.title}
-                </p>
-                <p className="text-[10px] text-gray-400 dark:text-gray-600 mt-0.5">
-                  {formatNumber(video.views)} views · {timeAgo(video.publishedAt)}
-                </p>
-              </a>
-            ))}
-          </div>
-        </div>
+        <VideoScroller videos={channel.videos} isShortForm={isShortForm} />
       )}
 
       {/* ── Expanded Detail Section ── */}

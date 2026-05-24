@@ -5,9 +5,13 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const NAV = [
-  { href: '/admin',          icon: '🏠', label: 'Dashboard'    },
-  { href: '/admin/channels', icon: '📋', label: 'All Channels' },
-  { href: '/admin/users',    icon: '👥', label: 'Users'        },
+  { href: '/admin',                       icon: '🏠', label: 'Dashboard'          },
+  { href: '/admin/channels',              icon: '📋', label: 'All Channels'        },
+  { href: '/admin/channels?type=long_form',   icon: '📹', label: '→ Long Form'    },
+  { href: '/admin/channels?type=short_form',  icon: '▶️', label: '→ Short Form'   },
+  { href: '/admin/channels?type=real_time',   icon: '🔴', label: '→ Real Time'    },
+  { href: '/admin/channels?type=terminated',  icon: '⛔', label: '→ Terminated'   },
+  { href: '/admin/users',                 icon: '👥', label: 'Users'              },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
