@@ -44,12 +44,12 @@ services:
         condition: service_healthy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.niche.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.niche.rule=Host(`${DOMAIN}`) || Host(`www.${DOMAIN}`)"
       - "traefik.http.routers.niche.entrypoints=websecure"
       - "traefik.http.routers.niche.tls.certresolver=letsencrypt"
       - "traefik.http.services.niche.loadbalancer.server.port=3000"
       # HTTP → HTTPS redirect
-      - "traefik.http.routers.niche-http.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.niche-http.rule=Host(`${DOMAIN}`) || Host(`www.${DOMAIN}`)"
       - "traefik.http.routers.niche-http.entrypoints=web"
       - "traefik.http.routers.niche-http.middlewares=https-redirect"
       - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
