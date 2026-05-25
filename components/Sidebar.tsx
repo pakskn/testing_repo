@@ -7,7 +7,6 @@ import { useState } from 'react'
 const CHANNEL_ITEMS = [
   { href: '/channels/long-form',   label: 'Long Form Channels',  icon: '📹' },
   { href: '/channels/short-form',  label: 'Short Form Channels', icon: '▶️'  },
-  { href: '/channels/nano-shorts', label: 'Nano Shorts',         icon: '⚡' },
   { href: '/channels/kids',        label: 'Kids',                icon: '🧒' },
 ]
 

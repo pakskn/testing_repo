@@ -71,7 +71,7 @@ export default function VideoGrid({
 
   // Compute active filter count
   const filterCount = [
-    vf.videoType !== 'all',
+    vf.language !== 'all',
     vf.outlierMin > 0 || vf.outlierMax < 100,
     vf.viewsMin > 0 || vf.viewsMax < 1_000_000_000,
     vf.subsMin > 0 || vf.subsMax < 50_000_000,
@@ -109,7 +109,7 @@ export default function VideoGrid({
           ...(vf.durationMin > 0 ? { durationMin: String(vf.durationMin) } : {}),
           ...(vf.durationMax < 43200 ? { durationMax: String(vf.durationMax) } : {}),
           ...(dateFrom ? { dateFrom } : {}),
-          ...(vf.videoType !== 'all' ? { videoType: vf.videoType } : {}),
+          ...(vf.language !== 'all' ? { language: vf.language } : {}),
         })
         const r = await fetch(`/api/videos?${p}`)
         const d = await r.json()
@@ -160,12 +160,12 @@ export default function VideoGrid({
       </div>
 
       {/* Active filter pills */}
-      {(vf.videoType !== 'all' || vf.datePreset || filterCount > 0) && (
+      {(vf.language !== 'all' || vf.datePreset || filterCount > 0) && (
         <div className="flex flex-wrap gap-2 mb-4">
-          {vf.videoType !== 'all' && (
-            <span className="flex items-center gap-1.5 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-xs font-medium">
-              {vf.videoType === 'long' ? '📹 Long' : '📱 Short'}
-              <button onClick={() => applyFilters({ ...vf, videoType: 'all' })} className="hover:text-blue-900 dark:hover:text-blue-200">✕</button>
+          {vf.language !== 'all' && (
+            <span className="flex items-center gap-1.5 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-xs font-medium capitalize">
+              🌐 {vf.language}
+              <button onClick={() => applyFilters({ ...vf, language: 'all' })} className="hover:text-blue-900 dark:hover:text-blue-200">✕</button>
             </span>
           )}
           {vf.datePreset && (

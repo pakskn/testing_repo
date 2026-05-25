@@ -93,7 +93,8 @@ export default function ContentView({
             onlyInactive={onlyInactive}
             onlyNano={onlyNano}
             onlyStandard={onlyStandard}
-            onlySuper={onlySuper} />
+            onlySuper={onlySuper}
+            onTabChange={setTab} />
         ) : (
           <VideoGrid channelType={channelType} title={title}
             defaultNiches={defaultNiches} excludeNiches={excludeNiches}

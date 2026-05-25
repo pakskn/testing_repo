@@ -239,7 +239,7 @@ export default function ChannelCard({ channel, onFindSimilar }: {
   onFindSimilar?: (req: SimilarRequest) => void
 }) {
   const { text: scoreText, bg: scoreBg } = outlierColor(channel.outlierScore)
-  const isShortForm = channel.channelType === 'short_form'
+  const isShortForm = channel.channelType === 'short_form' || channel.channelType === 'short'
   const [expanded, setExpanded] = useState(false)
   const { msg: toast, show: showToast } = useToast()
 

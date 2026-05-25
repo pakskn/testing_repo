@@ -17,6 +17,9 @@ export const DURATION_RANGES: Record<string, { min: number; max: number; label: 
 export interface FilterValues {
   monetization: 'on' | 'all' | 'off'
   faceless:     'yes' | 'all' | 'no'
+  aiChannel:    'yes' | 'all' | 'no'
+  kidsContent:  'yes' | 'all' | 'no'
+  shortsOnly:   'yes' | 'all' | 'no'
   videoFormat:  'all' | 'long' | 'shorts'
   videoSubtype: string
   contentMode:  'channels' | 'videos'
@@ -25,18 +28,26 @@ export interface FilterValues {
   totalViewsMin: number; totalViewsMax: number
   totalVideosMin: number; totalVideosMax: number
   outlierMin: number; outlierMax: number
+  monthlyViewsMin: number; monthlyViewsMax: number
+  avgVideoLengthMin: number; avgVideoLengthMax: number
+  firstUploadFrom: string; firstUploadTo: string
+  lastUploadFrom: string; lastUploadTo: string
   dateFrom: string; dateTo: string
   selectedNiches: string[]
 }
 
 export const DEFAULT_FILTERS: FilterValues = {
-  monetization: 'all', faceless: 'all',
+  monetization: 'all', faceless: 'all', aiChannel: 'all', kidsContent: 'all', shortsOnly: 'all',
   videoFormat: 'all', videoSubtype: '', contentMode: 'channels',
-  subsMin: 0,        subsMax: 50_000_000,
-  avgViewsMin: 0,    avgViewsMax: 10_000_000,
-  totalViewsMin: 0,  totalViewsMax: 1_000_000_000,
-  totalVideosMin: 0, totalVideosMax: 10_000,
+  subsMin: 1_000,    subsMax: 5_000_000,
+  avgViewsMin: 1_000, avgViewsMax: 2_000_000,
+  totalViewsMin: 10_000,  totalViewsMax: 1_000_000_000,
+  totalVideosMin: 1, totalVideosMax: 5_000,
   outlierMin: 0,     outlierMax: 100,
+  monthlyViewsMin: 1_000, monthlyViewsMax: 100_000_000,
+  avgVideoLengthMin: 0, avgVideoLengthMax: 7200,
+  firstUploadFrom: '', firstUploadTo: '',
+  lastUploadFrom: '', lastUploadTo: '',
   dateFrom: '', dateTo: '',
   selectedNiches: [],
 }
@@ -83,13 +94,16 @@ export default function AdvancedFilters({ initial, onApply, onClose }: Props) {
   const set = (p: Partial<FilterValues>) => setF(prev => ({ ...prev, ...p }))
 
   const activeCount = [
-    f.monetization !== 'all', f.faceless !== 'all',
-    f.videoFormat !== 'all', f.videoSubtype !== '',
-    f.subsMin > 0 || f.subsMax < 50_000_000,
-    f.avgViewsMin > 0 || f.avgViewsMax < 10_000_000,
-    f.totalViewsMin > 0 || f.totalViewsMax < 1_000_000_000,
-    f.totalVideosMin > 0 || f.totalVideosMax < 10_000,
+    f.monetization !== 'all', f.faceless !== 'all', f.aiChannel !== 'all', f.kidsContent !== 'all', f.shortsOnly !== 'all',
+    f.subsMin > 1_000 || f.subsMax < 5_000_000,
+    f.avgViewsMin > 1_000 || f.avgViewsMax < 2_000_000,
+    f.totalViewsMin > 10_000 || f.totalViewsMax < 1_000_000_000,
+    f.totalVideosMin > 1 || f.totalVideosMax < 5_000,
     f.outlierMin > 0 || f.outlierMax < 100,
+    f.monthlyViewsMin > 1_000 || f.monthlyViewsMax < 100_000_000,
+    f.avgVideoLengthMin > 0 || f.avgVideoLengthMax < 7200,
+    f.firstUploadFrom !== '' || f.firstUploadTo !== '',
+    f.lastUploadFrom !== '' || f.lastUploadTo !== '',
     f.dateFrom !== '' || f.dateTo !== '',
   ].filter(Boolean).length
 
@@ -112,72 +126,8 @@ export default function AdvancedFilters({ initial, onApply, onClose }: Props) {
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
 
-          {/* Step 1: Video Format */}
-          <Sec title="Step 1 — Video Format">
-            <div className="flex gap-2">
-              {[
-                { v: 'all',    l: '📋 All'    },
-                { v: 'long',   l: '📹 Long'   },
-                { v: 'shorts', l: '📱 Shorts'  },
-              ].map(o => (
-                <button key={o.v} type="button"
-                  onClick={() => set({ videoFormat: o.v as any, videoSubtype: '' })}
-                  className={`flex-1 py-2 rounded-lg text-xs font-semibold border transition-all ${
-                    f.videoFormat === o.v
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-[#2a2a2a] hover:border-blue-400'
-                  }`}
-                >{o.l}</button>
-              ))}
-            </div>
-
-            {f.videoFormat === 'long' && (
-              <div className="grid grid-cols-2 gap-2">
-                {(['micro', 'standard_long', 'prime', 'ultra'] as const).map(k => {
-                  const r = DURATION_RANGES[k]
-                  const active = f.videoSubtype === k
-                  return (
-                    <button key={k} type="button"
-                      onClick={() => set({ videoSubtype: active ? '' : k })}
-                      className={`p-2.5 rounded-lg text-left border transition-all ${
-                        active
-                          ? 'bg-blue-600 border-blue-600'
-                          : 'bg-white dark:bg-[#1a1a1a] border-gray-200 dark:border-[#2a2a2a] hover:border-blue-400'
-                      }`}
-                    >
-                      <p className={`text-xs font-bold ${active ? 'text-white' : 'text-gray-800 dark:text-gray-200'}`}>{r.label}</p>
-                      <p className={`text-[10px] ${active ? 'text-blue-100' : 'text-gray-400 dark:text-gray-500'}`}>{r.desc}</p>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-
-            {f.videoFormat === 'shorts' && (
-              <div className="grid grid-cols-3 gap-2">
-                {(['nano', 'standard_shorts', 'super'] as const).map(k => {
-                  const r = DURATION_RANGES[k]
-                  const active = f.videoSubtype === k
-                  return (
-                    <button key={k} type="button"
-                      onClick={() => set({ videoSubtype: active ? '' : k })}
-                      className={`p-2 rounded-lg text-center border transition-all ${
-                        active
-                          ? 'bg-blue-600 border-blue-600'
-                          : 'bg-white dark:bg-[#1a1a1a] border-gray-200 dark:border-[#2a2a2a] hover:border-blue-400'
-                      }`}
-                    >
-                      <p className={`text-[10px] font-bold leading-tight ${active ? 'text-white' : 'text-gray-800 dark:text-gray-200'}`}>{r.label}</p>
-                      <p className={`text-[9px] mt-0.5 ${active ? 'text-blue-100' : 'text-gray-400 dark:text-gray-500'}`}>{r.desc}</p>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          </Sec>
-
-          {/* Step 2: Content Mode */}
-          <Sec title="Step 2 — Show Me">
+          {/* Show Me - Mode Toggle */}
+          <Sec title="Show Me">
             <div className="grid grid-cols-2 gap-3">
               {[
                 { v: 'channels', i: '📺', l: 'Channels', d: 'Filter channels' },
@@ -199,74 +149,151 @@ export default function AdvancedFilters({ initial, onApply, onClose }: Props) {
             </div>
           </Sec>
 
-          {/* Monetization + Faceless */}
-          <Sec title="Channel Properties">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-[10px] text-gray-400 mb-1.5 uppercase font-semibold">Monetization</p>
-                <Tgl opts={[{label:'On',value:'on'},{label:'All',value:'all'},{label:'Off',value:'off'}]}
-                  val={f.monetization} onChange={v => set({ monetization: v as any })} />
+          {/* Render remaining filters ONLY if Channels mode is selected */}
+          {f.contentMode === 'channels' ? (
+            <>
+              {/* Content Type Toggles (Kids / Shorts) */}
+              <div className="grid grid-cols-2 gap-4 pb-4 border-b border-gray-100 dark:border-[#1e1e1e]">
+                <div>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-1.5 uppercase font-bold tracking-wide">Kids Content</p>
+                  <Tgl opts={[{label:'Yes',value:'yes'},{label:'All',value:'all'},{label:'No',value:'no'}]}
+                    val={f.kidsContent} onChange={v => set({ kidsContent: v as any })} />
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-1.5 uppercase font-bold tracking-wide">Shorts Only</p>
+                  <Tgl opts={[{label:'Yes',value:'yes'},{label:'All',value:'all'},{label:'No',value:'no'}]}
+                    val={f.shortsOnly} onChange={v => set({ shortsOnly: v as any })} />
+                </div>
               </div>
-              <div>
-                <p className="text-[10px] text-gray-400 mb-1.5 uppercase font-semibold">Faceless</p>
-                <Tgl opts={[{label:'Yes',value:'yes'},{label:'All',value:'all'},{label:'No',value:'no'}]}
-                  val={f.faceless} onChange={v => set({ faceless: v as any })} />
-              </div>
+
+              {/* Subscriber Metrics */}
+              <Sec title="Subscriber Metrics">
+                <RangeSlider label="Subscribers"
+                  min={1_000} max={5_000_000} step={1_000} arrowStep={1_000}
+                  minVal={f.subsMin} maxVal={f.subsMax}
+                  onChange={(mn, mx) => set({ subsMin: mn, subsMax: mx })} />
+              </Sec>
+
+              {/* View Metrics */}
+              <Sec title="View Metrics">
+                <RangeSlider label="Avg. Views Per Video"
+                  min={1_000} max={2_000_000} step={1_000} arrowStep={1_000}
+                  minVal={f.avgViewsMin} maxVal={f.avgViewsMax}
+                  onChange={(mn, mx) => set({ avgViewsMin: mn, avgViewsMax: mx })} />
+                <RangeSlider label="Monthly Views"
+                  min={1_000} max={100_000_000} step={10_000} arrowStep={10_000}
+                  minVal={f.monthlyViewsMin} maxVal={f.monthlyViewsMax}
+                  onChange={(mn, mx) => set({ monthlyViewsMin: mn, monthlyViewsMax: mx })} />
+                <RangeSlider label="Total Views"
+                  min={10_000} max={1_000_000_000} step={10_000} arrowStep={10_000}
+                  minVal={f.totalViewsMin} maxVal={f.totalViewsMax}
+                  onChange={(mn, mx) => set({ totalViewsMin: mn, totalViewsMax: mx })} />
+                <RangeSlider label="Avg. Video Length"
+                  min={0} max={7200} step={1} arrowStep={5}
+                  minVal={f.avgVideoLengthMin} maxVal={f.avgVideoLengthMax}
+                  onChange={(mn, mx) => set({ avgVideoLengthMin: mn, avgVideoLengthMax: mx })} />
+              </Sec>
+
+              {/* Upload & Performance */}
+              <Sec title="Upload & Performance">
+                <RangeSlider label="Total Videos"
+                  min={1} max={5_000} step={1} arrowStep={100}
+                  minVal={f.totalVideosMin} maxVal={f.totalVideosMax}
+                  onChange={(mn, mx) => set({ totalVideosMin: mn, totalVideosMax: mx })} />
+                <RangeSlider label="Outlier Score"
+                  min={0} max={100} step={0.5} arrowStep={1}
+                  minVal={f.outlierMin} maxVal={f.outlierMax}
+                  onChange={(mn, mx) => set({ outlierMin: mn, outlierMax: mx })} />
+              </Sec>
+
+              {/* Channel Properties */}
+              <Sec title="Channel Properties">
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <p className="text-[10px] text-gray-400 mb-1.5 uppercase font-semibold">Monetization</p>
+                    <Tgl opts={[{label:'On',value:'on'},{label:'All',value:'all'},{label:'Off',value:'off'}]}
+                      val={f.monetization} onChange={v => set({ monetization: v as any })} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-400 mb-1.5 uppercase font-semibold">Faceless Channel</p>
+                    <Tgl opts={[{label:'Yes',value:'yes'},{label:'All',value:'all'},{label:'No',value:'no'}]}
+                      val={f.faceless} onChange={v => set({ faceless: v as any })} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-400 mb-1.5 uppercase font-semibold">AI Channel</p>
+                    <Tgl opts={[{label:'Yes',value:'yes'},{label:'All',value:'all'},{label:'No',value:'no'}]}
+                      val={f.aiChannel} onChange={v => set({ aiChannel: v as any })} />
+                  </div>
+                </div>
+              </Sec>
+
+              {/* Date Filter */}
+              <Sec title="Date Filters">
+                {/* Channel Created */}
+                <div className="mb-3">
+                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Channel Created</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[9px] text-gray-400 block mb-0.5">From</label>
+                      <input type="date" value={f.dateFrom}
+                        onChange={e => set({ dateFrom: e.target.value })}
+                        className="w-full text-xs px-2 py-1.5 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#1a1a1a] text-gray-800 dark:text-gray-200 focus:outline-none focus:border-blue-400" />
+                    </div>
+                    <div>
+                      <label className="text-[9px] text-gray-400 block mb-0.5">To</label>
+                      <input type="date" value={f.dateTo}
+                        onChange={e => set({ dateTo: e.target.value })}
+                        className="w-full text-xs px-2 py-1.5 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#1a1a1a] text-gray-800 dark:text-gray-200 focus:outline-none focus:border-blue-400" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* First Upload Date */}
+                <div className="mb-3">
+                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">First Upload Date</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[9px] text-gray-400 block mb-0.5">From</label>
+                      <input type="date" value={f.firstUploadFrom}
+                        onChange={e => set({ firstUploadFrom: e.target.value })}
+                        className="w-full text-xs px-2 py-1.5 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#1a1a1a] text-gray-800 dark:text-gray-200 focus:outline-none focus:border-blue-400" />
+                    </div>
+                    <div>
+                      <label className="text-[9px] text-gray-400 block mb-0.5">To</label>
+                      <input type="date" value={f.firstUploadTo}
+                        onChange={e => set({ firstUploadTo: e.target.value })}
+                        className="w-full text-xs px-2 py-1.5 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#1a1a1a] text-gray-800 dark:text-gray-200 focus:outline-none focus:border-blue-400" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Last Upload */}
+                <div>
+                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Last Upload</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[9px] text-gray-400 block mb-0.5">From</label>
+                      <input type="date" value={f.lastUploadFrom}
+                        onChange={e => set({ lastUploadFrom: e.target.value })}
+                        className="w-full text-xs px-2 py-1.5 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#1a1a1a] text-gray-800 dark:text-gray-200 focus:outline-none focus:border-blue-400" />
+                    </div>
+                    <div>
+                      <label className="text-[9px] text-gray-400 block mb-0.5">To</label>
+                      <input type="date" value={f.lastUploadTo}
+                        onChange={e => set({ lastUploadTo: e.target.value })}
+                        className="w-full text-xs px-2 py-1.5 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#1a1a1a] text-gray-800 dark:text-gray-200 focus:outline-none focus:border-blue-400" />
+                    </div>
+                  </div>
+                </div>
+              </Sec>
+            </>
+          ) : (
+            <div className="p-6 text-center bg-gray-50 dark:bg-[#111] rounded-2xl border border-dashed border-gray-200 dark:border-[#2a2a2a]">
+              <span className="text-3xl block mb-2">🎬</span>
+              <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">Video filters will be added here.</p>
+              <p className="text-[10px] text-gray-400 mt-1">To filter videos, please use the main &quot;Videos&quot; tab and click the Filters button there!</p>
             </div>
-          </Sec>
-
-          {/* Subscriber Metrics */}
-          <Sec title="Subscriber Metrics">
-            <RangeSlider label="Subscribers"
-              min={0} max={50_000_000} step={1_000} arrowStep={1_000}
-              minVal={f.subsMin} maxVal={f.subsMax}
-              onChange={(mn, mx) => set({ subsMin: mn, subsMax: mx })} />
-          </Sec>
-
-          {/* View Metrics */}
-          <Sec title="View Metrics">
-            <RangeSlider label="Avg. Views Per Video"
-              min={0} max={10_000_000} step={1_000} arrowStep={1_000}
-              minVal={f.avgViewsMin} maxVal={f.avgViewsMax}
-              onChange={(mn, mx) => set({ avgViewsMin: mn, avgViewsMax: mx })} />
-            <RangeSlider label="Total Views (All Time)"
-              min={0} max={1_000_000_000} step={10_000} arrowStep={10_000}
-              minVal={f.totalViewsMin} maxVal={f.totalViewsMax}
-              onChange={(mn, mx) => set({ totalViewsMin: mn, totalViewsMax: mx })} />
-          </Sec>
-
-          {/* Performance */}
-          <Sec title="Upload & Performance">
-            <RangeSlider label="Total Videos Uploaded"
-              min={0} max={10_000} step={1} arrowStep={100}
-              minVal={f.totalVideosMin} maxVal={f.totalVideosMax}
-              onChange={(mn, mx) => set({ totalVideosMin: mn, totalVideosMax: mx })} />
-            <RangeSlider label="Outlier Score (x)"
-              min={0} max={100} step={0.5} arrowStep={1}
-              minVal={f.outlierMin} maxVal={f.outlierMax}
-              onChange={(mn, mx) => set({ outlierMin: mn, outlierMax: mx })} />
-          </Sec>
-
-          {/* Date Filter */}
-          <Sec title="Date Filter">
-            <p className="text-[10px] text-gray-400 dark:text-gray-500">
-              {f.contentMode === 'channels' ? 'Channel Creation Date' : 'Video Upload Date'}
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-[10px] text-gray-400 mb-1 block">From</label>
-                <input type="date" value={f.dateFrom}
-                  onChange={e => set({ dateFrom: e.target.value })}
-                  className="w-full text-xs px-2 py-2 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#1a1a1a] text-gray-800 dark:text-gray-200 focus:outline-none focus:border-blue-400" />
-              </div>
-              <div>
-                <label className="text-[10px] text-gray-400 mb-1 block">To</label>
-                <input type="date" value={f.dateTo}
-                  onChange={e => set({ dateTo: e.target.value })}
-                  className="w-full text-xs px-2 py-2 border border-gray-200 dark:border-[#2a2a2a] rounded-lg bg-white dark:bg-[#1a1a1a] text-gray-800 dark:text-gray-200 focus:outline-none focus:border-blue-400" />
-              </div>
-            </div>
-          </Sec>
+          )}
 
         </div>
 

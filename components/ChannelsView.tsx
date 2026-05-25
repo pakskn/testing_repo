@@ -55,6 +55,7 @@ interface ChannelsViewProps {
   onlyNano?: boolean
   onlyStandard?: boolean
   onlySuper?: boolean
+  onTabChange?: (tab: 'channels' | 'videos') => void
 }
 
 export default function ChannelsView({
@@ -69,6 +70,7 @@ export default function ChannelsView({
   onlyNano = false,
   onlyStandard = false,
   onlySuper = false,
+  onTabChange,
 }: ChannelsViewProps) {
   const [sort, setSort]       = useState<SortType>('created_at')
   const [order, setOrder]     = useState<OrderType>('desc')
@@ -143,6 +145,9 @@ export default function ChannelsView({
           ...(onlyStandard         ? { onlyStandard:         'true' } : {}),
           ...(onlySuper            ? { onlySuper:            'true' } : {}),
           monetization:     advFilters.monetization,
+          aiChannel:        advFilters.aiChannel,
+          kidsContent:      advFilters.kidsContent,
+          shortsOnly:       advFilters.shortsOnly,
           subsMin:          String(advFilters.subsMin),
           subsMax:          String(advFilters.subsMax),
           avgViewsMin:      String(advFilters.avgViewsMin),
@@ -190,6 +195,10 @@ export default function ChannelsView({
   }
 
   const handleApplyFilters = (f: FilterValues) => {
+    if (f.contentMode === 'videos' && onTabChange) {
+      onTabChange('videos')
+      return
+    }
     setAdvFilters(f)
     setPage(1)
   }

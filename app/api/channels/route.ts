@@ -31,6 +31,9 @@ export async function GET(request: NextRequest) {
   const onlyStandard      = searchParams.get('onlyStandard')        === 'true'
   const onlySuper         = searchParams.get('onlySuper')           === 'true'
   const monetize    = searchParams.get('monetization') || 'all'
+  const aiChannel   = searchParams.get('aiChannel') || 'all'
+  const kidsContent = searchParams.get('kidsContent') || 'all'
+  const shortsOnly  = searchParams.get('shortsOnly') || 'all'
   const subsMin     = parseInt(searchParams.get('subsMin')  || '0')
   const subsMax     = parseInt(searchParams.get('subsMax')  || '999999999')
   const avgViewMin  = parseInt(searchParams.get('avgViewsMin') || '0')
@@ -124,6 +127,15 @@ export async function GET(request: NextRequest) {
   // Monetization filter from advanced panel
   if (monetize === 'on')  where.isMonetized = true
   if (monetize === 'off') where.isMonetized = false
+  
+  if (aiChannel === 'yes') where.isAi = true
+  if (aiChannel === 'no')  where.isAi = false
+  
+  if (kidsContent === 'yes') where.isKids = true
+  if (kidsContent === 'no')  where.isKids = false
+  
+  if (shortsOnly === 'yes') where.shortsRatioLast30d = { gte: 90 }
+  if (shortsOnly === 'no')  where.shortsRatioLast30d = { lt: 90 }
 
   switch (filter) {
     case 'outliers':

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 
 export interface VideoFilterValues {
-  videoType:     'long' | 'short' | 'all'
+  language:      string
   columns:       4 | 5 | 6
   outlierMin:    number
   outlierMax:    number
@@ -17,7 +17,7 @@ export interface VideoFilterValues {
 }
 
 export const DEFAULT_VIDEO_FILTERS: VideoFilterValues = {
-  videoType: 'all', columns: 4,
+  language: 'all', columns: 4,
   outlierMin: 0, outlierMax: 100,
   viewsMin: 0, viewsMax: 1_000_000_000,
   subsMin: 0, subsMax: 50_000_000,
@@ -108,17 +108,21 @@ export default function VideoFilters({ initial, onApply, onClose }: Props) {
           <div className="bg-gray-50 dark:bg-[#111] border border-gray-100 dark:border-[#1e1e1e] rounded-xl p-4 space-y-4">
             <h3 className="font-semibold text-gray-800 dark:text-white text-sm">Search Filters</h3>
 
-            {/* Long / Short toggle */}
-            <div className="flex gap-2">
-              {[{v:'all',l:'All'},{v:'long',l:'▶ Long'},{v:'short',l:'📱 Short'}].map(o => (
-                <button key={o.v} type="button" onClick={() => set({ videoType: o.v as any })}
-                  className={`flex-1 py-2.5 rounded-xl text-xs font-bold border transition-all ${
-                    f.videoType === o.v
-                      ? 'bg-gray-900 text-white border-gray-900 dark:bg-white dark:text-black dark:border-white'
-                      : 'bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-[#2a2a2a] hover:border-gray-400'
-                  }`}
-                >{o.l}</button>
-              ))}
+            {/* Language Dropdown */}
+            <div>
+              <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Language</p>
+              <select
+                value={f.language}
+                onChange={e => set({ language: e.target.value })}
+                className="w-full text-sm px-3 py-2.5 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-xl text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 appearance-none"
+                style={{ backgroundImage: `url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23999%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px top 50%', backgroundSize: '10px auto' }}
+              >
+                <option value="all">All languages</option>
+                <option value="english">English</option>
+                <option value="español">Español</option>
+                <option value="français">Français</option>
+                <option value="german">German</option>
+              </select>
             </div>
 
             {/* Sliders */}
@@ -157,37 +161,7 @@ export default function VideoFilters({ initial, onApply, onClose }: Props) {
             </div>
           </div>
 
-          {/* View Preferences card */}
-          <div className="bg-gray-50 dark:bg-[#111] border border-gray-100 dark:border-[#1e1e1e] rounded-xl p-4 space-y-4">
-            <h3 className="font-semibold text-gray-800 dark:text-white text-sm">View Preferences</h3>
-
-            {/* Columns */}
-            <div>
-              <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Columns</p>
-              <div className="flex items-center gap-3">
-                <button type="button" onClick={() => set({ columns: Math.max(4, f.columns - 1) as any })}
-                  className="w-9 h-9 rounded-lg border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors flex items-center justify-center text-lg">
-                  −
-                </button>
-                <span className="text-xl font-bold text-gray-900 dark:text-white w-8 text-center">{f.columns}</span>
-                <button type="button" onClick={() => set({ columns: Math.min(6, f.columns + 1) as any })}
-                  className="w-9 h-9 rounded-lg border border-gray-200 dark:border-[#2a2a2a] bg-white dark:bg-[#1a1a1a] text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors flex items-center justify-center text-lg">
-                  +
-                </button>
-                <div className="flex gap-1 ml-2">
-                  {[4,5,6].map(n => (
-                    <button key={n} type="button" onClick={() => set({ columns: n as any })}
-                      className={`w-9 h-9 rounded-lg text-sm font-bold transition-all ${
-                        f.columns === n
-                          ? 'bg-gray-900 dark:bg-white text-white dark:text-black'
-                          : 'bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-[#2a2a2a]'
-                      }`}
-                    >{n}</button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* View Preferences removed per user request */}
 
         </div>
 

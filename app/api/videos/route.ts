@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
   const durationSubtype = searchParams.get('durationSubtype') || ''
   const outlierOnly     = searchParams.get('outlierOnly') === 'true'
   const dateFr          = searchParams.get('dateFrom') || ''
+  const language        = searchParams.get('language') || 'all'
 
   // For Long Form (faceless only), auto-apply 4-year filter if no explicit dateFrom
   const fourYearsAgo = (() => { const d = new Date(); d.setFullYear(d.getFullYear() - 3); return d })()
@@ -88,6 +89,7 @@ export async function GET(req: NextRequest) {
     ...(excludeNiches.includes('Music')
       ? [{ NOT: { OR: MUSIC_TITLE_PATTERNS.map(p => ({ title: { contains: p } })) } }]
       : []),
+    ...(language !== 'all' ? [{ language: language }] : []),
     ...(search ? [{
       OR: [
         { title:   { contains: search } },
