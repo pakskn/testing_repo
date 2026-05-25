@@ -8,6 +8,8 @@ services:
     image: postgres:15-alpine
     container_name: niche_db
     restart: always
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_USER:     ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -28,6 +30,12 @@ services:
     restart: always
     ports:
       - "3000:3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.niche-app.rule=Host(`waqasalee.com`)"
+      - "traefik.http.routers.niche-app.entrypoints=websecure"
+      - "traefik.http.routers.niche-app.tls.certresolver=letsencrypt"
+      - "traefik.http.services.niche-app.loadbalancer.server.port=3000"
     environment:
       DATABASE_URL:         postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
       YOUTUBE_API_KEY:      ${YOUTUBE_API_KEY}

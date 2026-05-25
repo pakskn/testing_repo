@@ -12,6 +12,7 @@ import os
 import sys
 import sqlite3
 import psycopg2
+import psycopg2.extras
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -49,6 +50,25 @@ def convert_bool(val):
     if val is None:
         return False
     return bool(val)
+
+def to_datetime(val):
+    if val is None:
+        return None
+    if isinstance(val, (int, float)):
+        return datetime.fromtimestamp(val / 1000.0)
+    if isinstance(val, str):
+        try:
+            return datetime.fromisoformat(val.replace('Z', '+00:00'))
+        except ValueError:
+            try:
+                return datetime.strptime(val, '%Y-%m-%d %H:%M:%S.%f')
+            except ValueError:
+                try:
+                    return datetime.strptime(val, '%Y-%m-%d %H:%M:%S')
+                except ValueError:
+                    if val.isdigit():
+                        return datetime.fromtimestamp(int(val) / 1000.0)
+    return val
 
 def migrate_table(lite_conn, pg_conn, table_name, select_cols, insert_cols, transform_fn=None, chunk_size=500):
     lite_cur = lite_conn.cursor()
@@ -122,7 +142,11 @@ def main():
         # --- 1. Migrate Users ---
         user_cols = ["id", "name", "email", "emailVerified", "image", "role", "status", "createdAt", "updatedAt"]
         def transform_user(row):
-            return list(row)
+            data = list(row)
+            data[3] = to_datetime(row[3]) # emailVerified
+            data[7] = to_datetime(row[7]) # createdAt
+            data[8] = to_datetime(row[8]) # updatedAt
+            return data
         migrate_table(lite_conn, pg_conn, "User", user_cols, user_cols, transform_fn=transform_user)
         
         # --- 2. Migrate Accounts ---
@@ -131,15 +155,27 @@ def main():
         
         # --- 3. Migrate Sessions ---
         sess_cols = ["id", "sessionToken", "userId", "expires"]
-        migrate_table(lite_conn, pg_conn, "Session", sess_cols, sess_cols)
+        def transform_sess(row):
+            data = list(row)
+            data[3] = to_datetime(row[3]) # expires
+            return data
+        migrate_table(lite_conn, pg_conn, "Session", sess_cols, sess_cols, transform_fn=transform_sess)
         
         # --- 4. Migrate VerificationTokens ---
         tok_cols = ["identifier", "token", "expires"]
-        migrate_table(lite_conn, pg_conn, "VerificationToken", tok_cols, tok_cols)
+        def transform_tok(row):
+            data = list(row)
+            data[2] = to_datetime(row[2]) # expires
+            return data
+        migrate_table(lite_conn, pg_conn, "VerificationToken", tok_cols, tok_cols, transform_fn=transform_tok)
         
         # --- 5. Migrate SignInLogs ---
         log_cols = ["id", "userId", "signedInAt"]
-        migrate_table(lite_conn, pg_conn, "SignInLog", log_cols, log_cols)
+        def transform_log(row):
+            data = list(row)
+            data[2] = to_datetime(row[2]) # signedInAt
+            return data
+        migrate_table(lite_conn, pg_conn, "SignInLog", log_cols, log_cols, transform_fn=transform_log)
 
         # --- 6. Migrate Channels ---
         # Note the boolean fields that must be mapped to Python booleans for Postgres
@@ -155,6 +191,7 @@ def main():
         def transform_channel(row):
             # Index positions:
             # 13: isMonetized, 14: isActive, 15: isKids, 16: isNews, 17: isEntertainment, 18: isFaceless, 19: isNano
+            # 21: createdAt, 22: updatedAt
             data = list(row)
             data[13] = convert_bool(row[13]) # isMonetized
             data[14] = convert_bool(row[14]) # isActive
@@ -163,6 +200,8 @@ def main():
             data[17] = convert_bool(row[17]) # isEntertainment
             data[18] = convert_bool(row[18]) # isFaceless
             data[19] = convert_bool(row[19]) # isNano
+            data[21] = to_datetime(row[21]) # createdAt
+            data[22] = to_datetime(row[22]) # updatedAt
             return data
             
         migrate_table(lite_conn, pg_conn, "Channel", ch_select_cols, ch_insert_cols, transform_fn=transform_channel)
@@ -174,6 +213,7 @@ def main():
         
         def transform_video(row):
             data = list(row)
+            data[7] = to_datetime(row[7]) # publishedAt
             data[8] = convert_bool(row[8]) # isOutlier
             data[9] = convert_bool(row[9]) # isNano
             return data
