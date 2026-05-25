@@ -116,6 +116,8 @@ def import_to_db(connection, is_postgres=False):
     print(f"Successfully imported {len(channels)} channels into {'PostgreSQL' if is_postgres else 'SQLite'}.")
 
 def main():
+    from dotenv import load_dotenv
+    load_dotenv()
     db_url = os.environ.get('DATABASE_URL')
     
     if db_url and db_url.startswith('postgres'):
