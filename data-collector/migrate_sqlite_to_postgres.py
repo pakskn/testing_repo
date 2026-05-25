@@ -184,14 +184,14 @@ def main():
             "subscribers", "totalVideos", "totalViews", "channelType", "niche",
             "daysSinceStart", "avgViewsPerVideo", "outlierScore", "isMonetized",
             "isActive", "isKids", "isNews", "isEntertainment", "isFaceless", "isNano",
-            "sortOrder", "createdAt", "updatedAt"
+            "sortOrder", "shortsRatioLast30d", "lastCategorizedAt", "createdAt", "updatedAt"
         ]
         ch_insert_cols = ch_select_cols
         
         def transform_channel(row):
             # Index positions:
             # 13: isMonetized, 14: isActive, 15: isKids, 16: isNews, 17: isEntertainment, 18: isFaceless, 19: isNano
-            # 21: createdAt, 22: updatedAt
+            # 20: sortOrder, 21: shortsRatioLast30d, 22: lastCategorizedAt, 23: createdAt, 24: updatedAt
             data = list(row)
             data[13] = convert_bool(row[13]) # isMonetized
             data[14] = convert_bool(row[14]) # isActive
@@ -200,15 +200,16 @@ def main():
             data[17] = convert_bool(row[17]) # isEntertainment
             data[18] = convert_bool(row[18]) # isFaceless
             data[19] = convert_bool(row[19]) # isNano
-            data[21] = to_datetime(row[21]) # createdAt
-            data[22] = to_datetime(row[22]) # updatedAt
+            data[22] = to_datetime(row[22]) # lastCategorizedAt
+            data[23] = to_datetime(row[23]) # createdAt
+            data[24] = to_datetime(row[24]) # updatedAt
             return data
             
         migrate_table(lite_conn, pg_conn, "Channel", ch_select_cols, ch_insert_cols, transform_fn=transform_channel)
 
         # --- 7. Migrate Videos ---
-        # Note isOutlier and isNano booleans
-        v_select_cols = ["id", "videoId", "channelId", "title", "thumbnailUrl", "views", "duration", "publishedAt", "isOutlier", "isNano"]
+        # Note isOutlier, isNano and isShort booleans
+        v_select_cols = ["id", "videoId", "channelId", "title", "thumbnailUrl", "views", "duration", "publishedAt", "isOutlier", "isNano", "isShort"]
         v_insert_cols = v_select_cols
         
         def transform_video(row):
@@ -216,6 +217,7 @@ def main():
             data[7] = to_datetime(row[7]) # publishedAt
             data[8] = convert_bool(row[8]) # isOutlier
             data[9] = convert_bool(row[9]) # isNano
+            data[10] = convert_bool(row[10]) # isShort
             return data
             
         migrate_table(lite_conn, pg_conn, "Video", v_select_cols, v_insert_cols, transform_fn=transform_video)
