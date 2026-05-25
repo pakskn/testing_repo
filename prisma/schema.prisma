@@ -87,6 +87,8 @@ model Channel {
   isFaceless        Boolean  @default(false)
   isNano            Boolean  @default(false)
   sortOrder         Int      @default(0)
+  shortsRatioLast30d Float   @default(0)
+  lastCategorizedAt DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   videos            Video[]
@@ -119,6 +121,7 @@ model Video {
   publishedAt  DateTime?
   isOutlier    Boolean   @default(false)
   isNano       Boolean   @default(false)
+  isShort      Boolean   @default(false)
   channel      Channel   @relation(fields: [channelId], references: [channelId])
 
   @@index([channelId])
@@ -127,3 +130,4 @@ model Video {
   @@index([isOutlier])
   @@index([publishedAt])
 }
+

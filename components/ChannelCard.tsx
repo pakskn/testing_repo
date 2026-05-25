@@ -118,6 +118,7 @@ function ChannelAvatar({ channelId, thumbnailUrl, channelName }: {
           alt={channelName}
           loading="lazy"
           decoding="async"
+          referrerPolicy="no-referrer"
           className="w-10 h-10 rounded-full object-cover ring-2 ring-gray-200 dark:ring-[#2a2a2a]"
           onError={() => setFailed(true)}
         />

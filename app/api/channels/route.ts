@@ -50,8 +50,11 @@ export async function GET(request: NextRequest) {
   const daysMax     = parseInt(searchParams.get('daysMax') || '999999')
   const titleKw     = searchParams.get('titleKeyword') || ''
 
+  // Map long_form -> long and short_form -> short for database compatibility
+  const dbChannelType = type === 'long_form' ? 'long' : type === 'short_form' ? 'short' : type
+
   // Build WHERE clause
-  const baseType: Prisma.ChannelWhereInput = { channelType: type, isActive: true }
+  const baseType: Prisma.ChannelWhereInput = { channelType: dbChannelType, isActive: true }
 
   // Search: regular text OR title keyword similarity
   const activeSearch = search || titleKw
@@ -194,6 +197,9 @@ export async function GET(request: NextRequest) {
         take: limit,
         include: {
           videos: {
+            where: {
+              isShort: dbChannelType === 'short' ? true : false,
+            },
             orderBy: { views: 'desc' },
             take: 10,  // show up to 10 videos per channel (horizontal scroll)
           },
