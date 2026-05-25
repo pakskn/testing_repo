@@ -39,13 +39,13 @@ export interface FilterValues {
 export const DEFAULT_FILTERS: FilterValues = {
   monetization: 'all', faceless: 'all', aiChannel: 'all', kidsContent: 'all', shortsOnly: 'all',
   videoFormat: 'all', videoSubtype: '', contentMode: 'channels',
-  subsMin: 1_000,    subsMax: 5_000_000,
-  avgViewsMin: 1_000, avgViewsMax: 2_000_000,
-  totalViewsMin: 10_000,  totalViewsMax: 1_000_000_000,
-  totalVideosMin: 1, totalVideosMax: 5_000,
+  subsMin: 0,        subsMax: 100_000_000,
+  avgViewsMin: 0,    avgViewsMax: 100_000_000,
+  totalViewsMin: 0,  totalViewsMax: 900_000_000_000,
+  totalVideosMin: 0, totalVideosMax: 100_000,
   outlierMin: 0,     outlierMax: 100,
-  monthlyViewsMin: 1_000, monthlyViewsMax: 100_000_000,
-  avgVideoLengthMin: 0, avgVideoLengthMax: 7200,
+  monthlyViewsMin: 0, monthlyViewsMax: 900_000_000,
+  avgVideoLengthMin: 0, avgVideoLengthMax: 43200,
   firstUploadFrom: '', firstUploadTo: '',
   lastUploadFrom: '', lastUploadTo: '',
   dateFrom: '', dateTo: '',
@@ -169,7 +169,7 @@ export default function AdvancedFilters({ initial, onApply, onClose }: Props) {
               {/* Subscriber Metrics */}
               <Sec title="Subscriber Metrics">
                 <RangeSlider label="Subscribers"
-                  min={1_000} max={5_000_000} step={1_000} arrowStep={1_000}
+                  min={0} max={100_000_000} step={1_000} arrowStep={10_000}
                   minVal={f.subsMin} maxVal={f.subsMax}
                   onChange={(mn, mx) => set({ subsMin: mn, subsMax: mx })} />
               </Sec>
@@ -177,15 +177,15 @@ export default function AdvancedFilters({ initial, onApply, onClose }: Props) {
               {/* View Metrics */}
               <Sec title="View Metrics">
                 <RangeSlider label="Avg. Views Per Video"
-                  min={1_000} max={2_000_000} step={1_000} arrowStep={1_000}
+                  min={0} max={100_000_000} step={1_000} arrowStep={10_000}
                   minVal={f.avgViewsMin} maxVal={f.avgViewsMax}
                   onChange={(mn, mx) => set({ avgViewsMin: mn, avgViewsMax: mx })} />
                 <RangeSlider label="Monthly Views"
-                  min={1_000} max={100_000_000} step={10_000} arrowStep={10_000}
+                  min={0} max={900_000_000} step={10_000} arrowStep={100_000}
                   minVal={f.monthlyViewsMin} maxVal={f.monthlyViewsMax}
                   onChange={(mn, mx) => set({ monthlyViewsMin: mn, monthlyViewsMax: mx })} />
                 <RangeSlider label="Total Views"
-                  min={10_000} max={1_000_000_000} step={10_000} arrowStep={10_000}
+                  min={0} max={900_000_000_000} step={100_000} arrowStep={1_000_000}
                   minVal={f.totalViewsMin} maxVal={f.totalViewsMax}
                   onChange={(mn, mx) => set({ totalViewsMin: mn, totalViewsMax: mx })} />
                 <RangeSlider label="Avg. Video Length"
@@ -197,7 +197,7 @@ export default function AdvancedFilters({ initial, onApply, onClose }: Props) {
               {/* Upload & Performance */}
               <Sec title="Upload & Performance">
                 <RangeSlider label="Total Videos"
-                  min={1} max={5_000} step={1} arrowStep={100}
+                  min={0} max={100_000} step={1} arrowStep={100}
                   minVal={f.totalVideosMin} maxVal={f.totalVideosMax}
                   onChange={(mn, mx) => set({ totalVideosMin: mn, totalVideosMax: mx })} />
                 <RangeSlider label="Outlier Score"
