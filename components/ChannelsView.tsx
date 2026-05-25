@@ -105,11 +105,17 @@ export default function ChannelsView({
   const advActiveCount = [
     advFilters.monetization !== 'all',
     advFilters.faceless !== 'all',
+    advFilters.aiChannel !== 'all',
+    advFilters.kidsContent !== 'all',
+    advFilters.shortsOnly !== 'all',
     advFilters.selectedNiches.length > 0,
-    advFilters.subsMin > 0 || advFilters.subsMax < 50_000_000,
-    advFilters.avgViewsMin > 0 || advFilters.avgViewsMax < 10_000_000,
+    advFilters.subsMin > 0 || advFilters.subsMax < 100_000_000,
+    advFilters.avgViewsMin > 0 || advFilters.avgViewsMax < 100_000_000,
+    advFilters.totalViewsMin > 0 || advFilters.totalViewsMax < 900_000_000_000,
+    advFilters.monthlyViewsMin > 0 || advFilters.monthlyViewsMax < 900_000_000,
+    advFilters.avgVideoLengthMin > 0 || advFilters.avgVideoLengthMax < 43200,
     advFilters.outlierMin > 0 || advFilters.outlierMax < 100,
-    advFilters.totalVideosMin > 0 || advFilters.totalVideosMax < 10_000,
+    advFilters.totalVideosMin > 0 || advFilters.totalVideosMax < 100_000,
   ].filter(Boolean).length
 
   useEffect(() => {
