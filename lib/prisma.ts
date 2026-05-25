@@ -11,3 +11,9 @@ export const prisma =
   })
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+
+// Fix for BigInt serialization in Next.js API routes
+;(BigInt.prototype as any).toJSON = function () {
+  return Number(this)
+}
+
