@@ -241,7 +241,7 @@ export async function GET(request: NextRequest) {
       return {
         ...ch,
         totalViews: Number(ch.totalViews),
-        videos: videos.slice(0, 3).map(v => ({
+        videos: videos.slice(0, 10).map(v => ({
           ...v,
           views: Number(v.views),
           publishedAt: v.publishedAt?.toISOString() ?? null,
