@@ -34,7 +34,7 @@ def fetch_top_long_videos_for_channel(channel_id, max_results=10):
             "maxResults": 50,
             "order": "viewCount",
             "type": "video",
-            "videoDuration": "medium", # 4-20 minutes, safely long! Or "long" (> 20 min). We'll use "any" and filter manually to be safe.
+            "videoDuration": "medium", 
             "key": API_KEY
         }).json()
         
@@ -85,7 +85,7 @@ def save_channel(cur, ch):
             "uploadsPlaylistId" = EXCLUDED."uploadsPlaylistId"
         RETURNING id;
     ''', (
-        ch["channelId"], ch["channelName"], ch["channelHandle"], 
+        ch["channelId"], ch["channelName"], ch.get("channelHandle", ""), 
         ch["subscribers"], ch["niche"], ch["outlierScore"], "long", ch.get("uploadsPlaylistId", "")
     ))
     return cur.fetchone()[0]
@@ -111,6 +111,7 @@ def main():
     
     # 1. Delete DC Power Wars
     print("Deleting 'DC Power Wars'...")
+    cur.execute('''DELETE FROM "Video" WHERE "channelId" IN (SELECT id FROM "Channel" WHERE "channelName" = 'DC Power Wars');''')
     cur.execute('''DELETE FROM "Channel" WHERE "channelName" = 'DC Power Wars';''')
     conn.commit()
     
@@ -126,11 +127,8 @@ def main():
         processed_channel_ids.add(ch_id)
         print(f"[{idx+1}/{len(channels)}] Importing {ch['channelName']}...")
         
-        # We don't fetch uploads_id from API to save quota, we don't strictly need it.
-        # But wait, if we don't have uploads_id, it defaults to "". That's fine.
         db_id = save_channel(cur, ch)
         
-        # Clear existing videos just in case
         cur.execute('''DELETE FROM "Video" WHERE "channelId" = %s''', (db_id,))
         
         for v in ch["videos"]:
