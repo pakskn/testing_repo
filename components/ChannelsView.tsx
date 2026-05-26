@@ -345,7 +345,7 @@ export default function ChannelsView({
       {/* Results count */}
       <div className="flex items-center gap-3 mb-5 text-sm">
         <span className="text-gray-700 dark:text-gray-300 font-medium">
-          Showing {(channels?.length ?? 0).toLocaleString()} of {total.toLocaleString()} Results
+          Showing {(channels?.length ?? 0).toLocaleString()} of {(total ?? 0).toLocaleString()} Results
           {advFilters.selectedNiches.length > 0 && !similarTo && (
             <span className="ml-1 text-gray-400 dark:text-gray-500">
               in {advFilters.selectedNiches.length === 1 ? advFilters.selectedNiches[0] : `${advFilters.selectedNiches.length} categories`}
@@ -368,7 +368,7 @@ export default function ChannelsView({
           <div className="w-6 h-6 border-2 border-gray-300 dark:border-gray-600 border-t-gray-600 dark:border-t-white rounded-full animate-spin" />
           <span className="text-sm">Loading channels...</span>
         </div>
-      ) : channels.length === 0 ? (
+      ) : (channels?.length ?? 0) === 0 ? (
         <div className="flex flex-col items-center justify-center h-72 gap-3 text-gray-400">
           <span className="text-5xl">📭</span>
           {!isFiltered ? (

@@ -184,7 +184,7 @@ export default function VideoGrid({
       {/* Results count + columns */}
       <div className="flex items-center justify-between mb-5">
         <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-          {loading ? 'Loading...' : `${videos.length.toLocaleString()} of ${total.toLocaleString()} videos`}
+          {loading ? 'Loading...' : `${(videos?.length ?? 0).toLocaleString()} of ${(total ?? 0).toLocaleString()} videos`}
         </span>
         {/* Column quick select */}
         <div className="flex items-center gap-1">
