@@ -4,10 +4,14 @@ import psycopg2
 from dotenv import load_dotenv
 import requests
 import isodate
+import uuid
 
 load_dotenv()
 DB_URL = os.getenv("DATABASE_URL")
 API_KEY = os.getenv("YOUTUBE_API_KEY")
+
+def get_cuid():
+    return "c" + uuid.uuid4().hex[:24]
 
 def format_duration(iso_duration):
     try:
@@ -72,8 +76,8 @@ def fetch_top_long_videos_for_channel(channel_id, max_results=10):
 
 def save_channel(cur, ch):
     cur.execute('''
-        INSERT INTO "Channel" ("channelId", "channelName", "channelHandle", "subscribers", "niche", "outlierScore", "channelType")
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO "Channel" ("id", "channelId", "channelName", "channelHandle", "subscribers", "niche", "outlierScore", "channelType")
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT ("channelId") DO UPDATE SET
             "channelName" = EXCLUDED."channelName",
             "channelHandle" = EXCLUDED."channelHandle",
@@ -81,15 +85,15 @@ def save_channel(cur, ch):
             "outlierScore" = EXCLUDED."outlierScore"
         RETURNING "channelId";
     ''', (
-        ch["channelId"], ch["channelName"], ch.get("channelHandle", ""), 
+        get_cuid(), ch["channelId"], ch["channelName"], ch.get("channelHandle", ""), 
         ch["subscribers"], ch["niche"], ch["outlierScore"], "long"
     ))
     return cur.fetchone()[0]
 
 def save_video(cur, yt_ch_id, v):
     cur.execute('''
-        INSERT INTO "Video" ("videoId", "channelId", "title", "thumbnailUrl", "views", "duration", "publishedAt", "isShort")
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO "Video" ("id", "videoId", "channelId", "title", "thumbnailUrl", "views", "duration", "publishedAt", "isShort")
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT ("videoId") DO UPDATE SET
             "views" = EXCLUDED."views",
             "title" = EXCLUDED."title",
@@ -97,7 +101,7 @@ def save_video(cur, yt_ch_id, v):
             "duration" = EXCLUDED."duration",
             "isShort" = EXCLUDED."isShort"
     ''', (
-        v["videoId"], yt_ch_id, v["title"], v["thumbnailUrl"],
+        get_cuid(), v["videoId"], yt_ch_id, v["title"], v["thumbnailUrl"],
         v["views"], v["duration"], v["publishedAt"], False
     ))
 
