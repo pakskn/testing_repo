@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import requests
 import isodate
 import uuid
+from datetime import datetime
 
 load_dotenv()
 DB_URL = os.getenv("DATABASE_URL")
@@ -75,34 +76,38 @@ def fetch_top_long_videos_for_channel(channel_id, max_results=10):
         return []
 
 def save_channel(cur, ch):
+    now = datetime.utcnow()
     cur.execute('''
-        INSERT INTO "Channel" ("id", "channelId", "channelName", "channelHandle", "subscribers", "niche", "outlierScore", "channelType")
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO "Channel" ("id", "channelId", "channelName", "channelHandle", "subscribers", "niche", "outlierScore", "channelType", "updatedAt")
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT ("channelId") DO UPDATE SET
             "channelName" = EXCLUDED."channelName",
             "channelHandle" = EXCLUDED."channelHandle",
             "subscribers" = EXCLUDED."subscribers",
-            "outlierScore" = EXCLUDED."outlierScore"
+            "outlierScore" = EXCLUDED."outlierScore",
+            "updatedAt" = EXCLUDED."updatedAt"
         RETURNING "channelId";
     ''', (
         get_cuid(), ch["channelId"], ch["channelName"], ch.get("channelHandle", ""), 
-        ch["subscribers"], ch["niche"], ch["outlierScore"], "long"
+        ch["subscribers"], ch["niche"], ch["outlierScore"], "long", now
     ))
     return cur.fetchone()[0]
 
 def save_video(cur, yt_ch_id, v):
+    now = datetime.utcnow()
     cur.execute('''
-        INSERT INTO "Video" ("id", "videoId", "channelId", "title", "thumbnailUrl", "views", "duration", "publishedAt", "isShort")
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO "Video" ("id", "videoId", "channelId", "title", "thumbnailUrl", "views", "duration", "publishedAt", "isShort", "updatedAt")
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT ("videoId") DO UPDATE SET
             "views" = EXCLUDED."views",
             "title" = EXCLUDED."title",
             "thumbnailUrl" = EXCLUDED."thumbnailUrl",
             "duration" = EXCLUDED."duration",
-            "isShort" = EXCLUDED."isShort"
+            "isShort" = EXCLUDED."isShort",
+            "updatedAt" = EXCLUDED."updatedAt"
     ''', (
         get_cuid(), v["videoId"], yt_ch_id, v["title"], v["thumbnailUrl"],
-        v["views"], v["duration"], v["publishedAt"], False
+        v["views"], v["duration"], v["publishedAt"], False, now
     ))
 
 def main():
