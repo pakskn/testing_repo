@@ -8,9 +8,9 @@ DB_URL = os.getenv("DATABASE_URL")
 def main():
     conn = psycopg2.connect(DB_URL)
     cur = conn.cursor()
-    cur.execute('SELECT COUNT(*) FROM "Channel";')
+    cur.execute('SELECT COUNT(*) FROM "Channel" WHERE "channelType" = \'long\';')
     count = cur.fetchone()[0]
-    print(f"Total Channels in DB: {count}")
+    print(f"Total Long Channels in DB: {count}")
     cur.close()
     conn.close()
 
