@@ -72,18 +72,17 @@ def fetch_top_long_videos_for_channel(channel_id, max_results=10):
 
 def save_channel(cur, ch):
     cur.execute('''
-        INSERT INTO "Channel" ("channelId", "channelName", "channelHandle", "subscribers", "niche", "outlierScore", "channelType", "uploadsPlaylistId")
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO "Channel" ("channelId", "channelName", "channelHandle", "subscribers", "niche", "outlierScore", "channelType")
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT ("channelId") DO UPDATE SET
             "channelName" = EXCLUDED."channelName",
             "channelHandle" = EXCLUDED."channelHandle",
             "subscribers" = EXCLUDED."subscribers",
-            "outlierScore" = EXCLUDED."outlierScore",
-            "uploadsPlaylistId" = EXCLUDED."uploadsPlaylistId"
+            "outlierScore" = EXCLUDED."outlierScore"
         RETURNING "channelId";
     ''', (
         ch["channelId"], ch["channelName"], ch.get("channelHandle", ""), 
-        ch["subscribers"], ch["niche"], ch["outlierScore"], "long", ch.get("uploadsPlaylistId", "")
+        ch["subscribers"], ch["niche"], ch["outlierScore"], "long"
     ))
     return cur.fetchone()[0]
 
