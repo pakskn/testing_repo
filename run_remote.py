@@ -12,7 +12,13 @@ def main():
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
         ssh.connect(hostname='72.62.132.159', username='root', password='MyN3wP@s-123')
-        stdin, stdout, stderr = ssh.exec_command(command)
+        # Read script if arg starts with @
+        if command.startswith('@'):
+            with open(command[1:], 'r') as f:
+                script = f.read()
+            stdin, stdout, stderr = ssh.exec_command('python3 -c "' + script.replace('"', '\\"') + '"')
+        else:
+            stdin, stdout, stderr = ssh.exec_command(command)
         
         out = stdout.read()
         err = stderr.read()

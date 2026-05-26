@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { rateLimit } from '@/lib/rate-limit'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 
 function parseDurationSecs(dur: string | null): number {
   if (!dur) return 0
@@ -21,6 +24,34 @@ const SUBTYPE_RANGES: Record<string, { min: number; max: number }> = {
 }
 
 export async function GET(req: NextRequest) {
+  // Local route fallback rate limiting
+  const session = await getServerSession(authOptions)
+  const userId = session?.user?.id || session?.user?.email || undefined
+  const limitResult = await rateLimit(req, undefined, userId)
+
+  if (!limitResult.success) {
+    const resetSeconds = Math.max(1, Math.ceil((limitResult.reset - Date.now()) / 1000))
+    return new NextResponse(
+      JSON.stringify({
+        error: 'Too Many Requests',
+        message: 'You have exceeded the rate limit. Please try again later.',
+        remaining: limitResult.remaining,
+        limit: limitResult.limit,
+        reset: limitResult.reset,
+      }),
+      {
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json',
+          'Retry-After': resetSeconds.toString(),
+          'X-RateLimit-Limit': limitResult.limit.toString(),
+          'X-RateLimit-Remaining': limitResult.remaining.toString(),
+          'X-RateLimit-Reset': Math.ceil(limitResult.reset / 1000).toString(),
+        },
+      }
+    )
+  }
+
   const { searchParams } = new URL(req.url)
 
   const channelType     = searchParams.get('channelType')   || 'long_form'
