@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import requests
 import isodate
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 load_dotenv()
 DB_URL = os.getenv("DATABASE_URL")
@@ -76,7 +76,7 @@ def fetch_top_long_videos_for_channel(channel_id, max_results=10):
         return []
 
 def save_channel(cur, ch):
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     cur.execute('''
         INSERT INTO "Channel" ("id", "channelId", "channelName", "channelHandle", "subscribers", "niche", "outlierScore", "channelType", "updatedAt")
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -94,20 +94,18 @@ def save_channel(cur, ch):
     return cur.fetchone()[0]
 
 def save_video(cur, yt_ch_id, v):
-    now = datetime.utcnow()
     cur.execute('''
-        INSERT INTO "Video" ("id", "videoId", "channelId", "title", "thumbnailUrl", "views", "duration", "publishedAt", "isShort", "updatedAt")
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO "Video" ("id", "videoId", "channelId", "title", "thumbnailUrl", "views", "duration", "publishedAt", "isShort")
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT ("videoId") DO UPDATE SET
             "views" = EXCLUDED."views",
             "title" = EXCLUDED."title",
             "thumbnailUrl" = EXCLUDED."thumbnailUrl",
             "duration" = EXCLUDED."duration",
-            "isShort" = EXCLUDED."isShort",
-            "updatedAt" = EXCLUDED."updatedAt"
+            "isShort" = EXCLUDED."isShort"
     ''', (
         get_cuid(), v["videoId"], yt_ch_id, v["title"], v["thumbnailUrl"],
-        v["views"], v["duration"], v["publishedAt"], False, now
+        v["views"], v["duration"], v["publishedAt"], False
     ))
 
 def main():
