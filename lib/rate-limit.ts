@@ -37,12 +37,12 @@ function inMemoryRateLimit(
 
   // 1. Lazy memory pruning if cache size gets large (> 10,000 concurrent IPs)
   if (cache.size > 10000) {
-    for (const [k, v] of cache.entries()) {
+    cache.forEach((v, k) => {
       // If the record has not been touched in more than the window limit, prune it safely
       if (now - v.lastRefill > windowMs) {
         cache.delete(k)
       }
-    }
+    })
   }
 
   // 2. Fetch or initialize the token bucket
