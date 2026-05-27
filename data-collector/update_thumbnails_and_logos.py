@@ -237,7 +237,7 @@ def main():
                     }
                 ).json(), km)
                 
-                if v_response and 'items' in r := v_response:
+                if v_response and 'items' in v_response:
                     for item in v_response['items']:
                         v_id = item.get('id')
                         stats = item.get('statistics', {})
