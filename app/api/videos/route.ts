@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { rateLimit } from '@/lib/rate-limit'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
 
 function parseDurationSecs(dur: string | null): number {
   if (!dur) return 0
@@ -25,7 +24,7 @@ const SUBTYPE_RANGES: Record<string, { min: number; max: number }> = {
 
 export async function GET(req: NextRequest) {
   // Local route fallback rate limiting
-  const session = await getServerSession(authOptions)
+  const session = await auth()
   const userId = session?.user?.id || session?.user?.email || undefined
   const limitResult = await rateLimit(req, undefined, userId)
 

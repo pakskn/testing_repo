@@ -1,31 +1,34 @@
-import { AuthOptions } from 'next-auth'
-import GoogleProvider from 'next-auth/providers/google'
-import { PrismaAdapter } from '@next-auth/prisma-adapter'
-import { prisma } from '@/lib/prisma'
+import NextAuth from "next-auth"
+import Google from "next-auth/providers/google"
+import { PrismaAdapter } from "@auth/prisma-adapter"
+import { prisma } from "@/lib/prisma"
 
-export const authOptions: AuthOptions = {
+export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers: [
-    GoogleProvider({
-      clientId:     process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
   ],
-  session: { strategy: 'jwt' },
-  pages: { signIn: '/signin' },
+  session: { strategy: "jwt" },
+  pages: { signIn: "/signin" },
 
   callbacks: {
     async signIn({ user }) {
       try {
+        if (!user.email) return false
+        
         const dbUser = await prisma.user.findUnique({
-          where: { email: user.email! },
+          where: { email: user.email },
           select: { id: true, status: true, role: true },
         })
+        
         if (!dbUser) return true
         if (dbUser.status === 'blocked') return '/signin?error=Blocked'
 
         const adminEmails = (process.env.ADMIN_EMAIL || '').split(',').map(e => e.trim())
-        if (adminEmails.includes(user.email!) && dbUser.role !== 'admin') {
+        if (adminEmails.includes(user.email) && dbUser.role !== 'admin') {
           await prisma.user.update({
             where: { id: dbUser.id },
             data: { role: 'admin', status: 'active' },
@@ -60,4 +63,4 @@ export const authOptions: AuthOptions = {
       return session
     },
   },
-}
+})

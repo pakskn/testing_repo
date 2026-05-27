@@ -2,12 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { rateLimit } from '@/lib/rate-limit'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   // Local route fallback rate limiting
-  const session = await getServerSession(authOptions)
+  const session = await auth()
   const userId = session?.user?.id || session?.user?.email || undefined
   const limitResult = await rateLimit(request, undefined, userId)
 
