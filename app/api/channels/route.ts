@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { rateLimit } from '@/lib/rate-limit'
 import { auth } from '@/lib/auth'
+import { getCache, setCache } from '@/lib/cache'
 
 export async function GET(request: NextRequest) {
   // Local route fallback rate limiting
@@ -229,6 +230,23 @@ export async function GET(request: NextRequest) {
     return parts[0] || 0
   }
 
+  const cacheKey = `channels:${JSON.stringify({
+    type, filter, sort, order, search, page, limit, randomSeed, niches, excludeNiches,
+    onlyKids, onlyNews, excludeKids, excludeNews, excludeEntertainment, includeEntertainment,
+    onlyFaceless, hideInactive, onlyInactive, onlyNano, onlyStandard, onlySuper, monetize,
+    aiChannel, kidsContent, shortsOnly, subsMin, subsMax, avgViewMin, avgViewMax, outlierMin,
+    outlierMax, videosMin, videosMax, totalViewsMin, totalViewsMax, dateFrom, dateTo, daysMin,
+    daysMax, titleKw
+  })}`
+
+  const cachedData = await getCache<{ total: number; page: number; channels: any[] }>(cacheKey)
+  if (cachedData) {
+    const response = NextResponse.json(cachedData)
+    response.headers.set('X-Cache', 'HIT')
+    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=60')
+    return response
+  }
+
   try {
     const [total, channels] = await Promise.all([
       prisma.channel.count({ where }),
@@ -317,8 +335,11 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    const response = NextResponse.json({ total, page, channels: serialized })
-    // Cache for 5 minutes — reduces DB load on repeated identical queries
+    const responseData = { total, page, channels: serialized }
+    await setCache(cacheKey, responseData, 300) // 5 minutes cache
+
+    const response = NextResponse.json(responseData)
+    response.headers.set('X-Cache', 'MISS')
     response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=60')
     return response
   } catch (error) {

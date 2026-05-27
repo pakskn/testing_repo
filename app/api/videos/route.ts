@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { rateLimit } from '@/lib/rate-limit'
 import { auth } from '@/lib/auth'
+import { getCache, setCache } from '@/lib/cache'
 
 function parseDurationSecs(dur: string | null): number {
   if (!dur) return 0
@@ -134,6 +135,20 @@ export async function GET(req: NextRequest) {
   // JS backup filter for date (handles any format edge cases)
   const dateCutoff = dateFrom ? new Date(dateFrom).getTime() : 0
 
+  const cacheKey = `videos:${JSON.stringify({
+    channelType, search, niches, excludeNiches, onlyKids, onlyNews, excludeKids, excludeNews,
+    includeNews, excludeEntertainment, includeEntertainment, onlyFaceless, durationSubtype,
+    outlierOnly, dateFr, language, dateFrom, page, limit
+  })}`
+
+  const cachedData = await getCache<{ total: number; page: number; videos: any[] }>(cacheKey)
+  if (cachedData) {
+    const response = NextResponse.json(cachedData)
+    response.headers.set('X-Cache', 'HIT')
+    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=60')
+    return response
+  }
+
   try {
     const [total, videos] = await Promise.all([
       prisma.video.count({ where }),
@@ -207,11 +222,15 @@ export async function GET(req: NextRequest) {
       },
     }))
 
-    const response = NextResponse.json({
+    const responseData = {
       total: durationSubtype ? filtered.length : total,
       page,
       videos: serialized,
-    })
+    }
+    await setCache(cacheKey, responseData, 300) // 5 minutes cache
+
+    const response = NextResponse.json(responseData)
+    response.headers.set('X-Cache', 'MISS')
     response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=60')
     return response
   } catch (err: any) {
