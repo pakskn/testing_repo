@@ -42,6 +42,7 @@ export default auth(async function middleware(req) {
   const isPublicPath = path.startsWith('/signin') ||
                        path.startsWith('/pending') ||
                        path.startsWith('/api/auth') ||
+                       path.startsWith('/api/image-proxy') ||
                        path.startsWith('/_next') ||
                        path === '/favicon.ico'
 
@@ -49,8 +50,8 @@ export default auth(async function middleware(req) {
     return applySecurityHeaders(NextResponse.redirect(new URL('/signin', req.url)))
   }
 
-  // 2. Global API Rate Limiting (excluding NextAuth endpoints)
-  if (path.startsWith('/api') && !path.startsWith('/api/auth')) {
+  // 2. Global API Rate Limiting (excluding NextAuth and Image Proxy endpoints)
+  if (path.startsWith('/api') && !path.startsWith('/api/auth') && !path.startsWith('/api/image-proxy')) {
     const userId = token?.user?.id || token?.user?.email || undefined
     const limitResult = await rateLimit(req, path, userId)
 
