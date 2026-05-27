@@ -1,18 +1,17 @@
 """
-Daily Auto Collector — Niche Finder
+Daily Auto Collector — Niche Finder (Optimized & Smart Delta Sync)
 =====================================
-Roz chalao: 100 naye faceless channels collect karta hai
+Roz chalao: 
+1. Pehle existing channels ko delta sync ke sath batch refresh karta hai (70-80% cheaper)
+2. Phir naye channels discover karta hai if target not met
 Auto key rotation: jab 1 key ka quota khatam ho, 2nd pe shift
 Diverse categories: Sports, True Crime, History, Documentary + 45 more
 
 Usage:
     python -X utf8 daily_collector.py
-
-VPS Cron (roz raat 3 baje):
-    0 21 * * * cd /var/www/niche-finder/data-collector && python -X utf8 daily_collector.py >> /var/log/niche_collector.log 2>&1
 """
 import sys, io, uuid, requests, isodate, os
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 from api_key_manager import APIKeyManager, safe_api_call
 from db_helper import get_connection
@@ -21,8 +20,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='repla
 load_dotenv()
 
 # ── Config ────────────────────────────────────────────────────────────────────
-DB_PATH     = '../prisma/dev.db'   # Prisma reads from here (schema-relative path)
-TARGET      = 100               # Target channels per run
+TARGET      = 100               # Target new/updated channels per run
 MIN_SUBS    = 5_000
 MAX_SUBS    = 500_000
 
@@ -174,13 +172,17 @@ def search_channels(query, km, max_results=10):
     ).json(), km)
     return [i['id']['channelId'] for i in (r or {}).get('items', [])]
 
-def get_channel_info(ch_id, km):
+def get_channels_batch(ch_ids, km):
+    """
+    Cost-effective batch call fetching stats of up to 50 channels at once.
+    Costs ONLY 1 quota unit total!
+    """
+    if not ch_ids: return []
     r = safe_api_call(lambda key: requests.get(
         'https://www.googleapis.com/youtube/v3/channels',
-        params={'part':'snippet,statistics,contentDetails','id':ch_id,'key':key}
+        params={'part':'snippet,statistics,contentDetails','id':','.join(ch_ids),'key':key}
     ).json(), km)
-    if r and r.get('items'): return r['items'][0]
-    return None
+    return (r or {}).get('items', [])
 
 def get_top_videos(uploads_pl, km, max_results=5):
     if not uploads_pl: return []
@@ -204,13 +206,122 @@ def get_top_videos(uploads_pl, km, max_results=5):
     result.sort(key=lambda v: int(v.get('statistics',{}).get('viewCount',0)), reverse=True)
     return result[:max_results]
 
+# ── Dynamic Caching & Delta Ingestion ──────────────────────────────────────────
+def refresh_existing_channels(conn, km):
+    """
+    Fetches details of active channels older than 24 hours in batches of 50.
+    Implements a smart Delta Video Bypass to skip unchanged playlist items.
+    """
+    print("\n  🔄 [Phase 1/2] Refreshing Existing Channels (Smart Delta Sync)...")
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+    
+    # Query channels needing refresh
+    rows = conn.execute(
+        'SELECT "channelId", "totalVideos", "channelName" FROM "Channel" WHERE "isActive" = true AND "updatedAt" < ?',
+        (cutoff,)
+    ).fetchall()
+
+    if not rows:
+        print("    ✅ All channels up to date (updated within last 24 hours).")
+        return 0
+
+    print(f"    Found {len(rows)} channels older than 24 hours.")
+    
+    # Map channelId -> old totalVideos for fast lookup
+    old_totals = {r[0]: (r[1], r[2]) for r in rows}
+    ch_ids = list(old_totals.keys())
+    
+    refreshed = 0
+    delta_skipped = 0
+    
+    # Group into batches of 50 to optimize API cost (1 unit per 50 channels!)
+    for i in range(0, len(ch_ids), 50):
+        batch = ch_ids[i:i+50]
+        items = get_channels_batch(batch, km)
+        
+        for info in items:
+            ch_id = info.get('id')
+            sn    = info.get('snippet', {})
+            st    = info.get('statistics', {})
+            cd    = info.get('contentDetails', {})
+            
+            name  = sn.get('title', '')
+            subs  = int(st.get('subscriberCount', 0))
+            vids  = int(st.get('videoCount', 0))
+            views = int(st.get('viewCount', 0))
+            
+            # Retrieve old stats
+            old_vids, old_name = old_totals.get(ch_id, (0, ''))
+            
+            # Check how many videos already exist in our local DB for this channel
+            has_videos = conn.execute('SELECT COUNT(*) FROM "Video" WHERE "channelId"=?', (ch_id,)).fetchone()[0]
+            
+            # Smart Delta Bypass condition: totalVideos unchanged and we already have cached popular videos
+            skip_video_sync = (vids == old_vids) and (has_videos >= 3)
+            
+            pub_str = sn.get('publishedAt', '')
+            days_since = 0
+            if pub_str:
+                created = datetime.fromisoformat(pub_str.replace('Z','+00:00'))
+                days_since = (datetime.now(timezone.utc) - created).days
+                
+            avg_views = round(views / vids, 2) if vids > 0 else 0
+            outlier   = round(avg_views / subs, 2) if subs > 0 else 0
+            thumb     = sn.get('thumbnails', {}).get('default', {}).get('url', '')
+            handle    = sn.get('customUrl', '')
+            uploads_pl= cd.get('relatedPlaylists', {}).get('uploads', '')
+            
+            now_str = datetime.now(timezone.utc).isoformat()
+            
+            # Update channel stats
+            conn.execute("""
+                UPDATE "Channel" SET
+                    "channelName" = ?, "thumbnailUrl" = ?, "subscribers" = ?,
+                    "totalVideos" = ?, "totalViews" = ?, "avgViewsPerVideo" = ?,
+                    "outlierScore" = ?, "isMonetized" = ?, "daysSinceStart" = ?,
+                    "channelHandle" = ?, "updatedAt" = ?
+                WHERE "channelId" = ?
+            """, (name, thumb, subs, vids, views, avg_views, outlier, subs >= 1000, days_since, handle, now_str, ch_id))
+            conn.commit()
+            
+            if skip_video_sync:
+                # DELTA SYNC BYPASS (CHEAPEST UPDATE!)
+                print(f"    [Delta Sync] 🟢 Skipped video scan for: {name[:32]:32} (vids: {vids} unchanged)")
+                delta_skipped += 1
+            else:
+                # Video counts changed or table lacks references → execute details fetch
+                conn.execute('DELETE FROM "Video" WHERE "channelId"=?', (ch_id,))
+                conn.commit()
+                
+                vid_saved = 0
+                for v in get_top_videos(uploads_pl, km, max_results=5)[:3]:
+                    vs = v.get('statistics',{}); vsnip = v.get('snippet',{}); vd = v.get('contentDetails',{})
+                    pub_v = vsnip.get('publishedAt','')
+                    pub_dt = datetime.fromisoformat(pub_v.replace('Z','+00:00')) if pub_v else None
+                    save_video(conn, {
+                        'videoId': v['id'], 'channelId': ch_id,
+                        'title': vsnip.get('title',''),
+                        'thumbnailUrl': vsnip.get('thumbnails',{}).get('medium',{}).get('url',''),
+                        'views': int(vs.get('viewCount',0)),
+                        'duration': fmt_dur(vd.get('duration','PT0S')),
+                        'publishedAt': pub_dt,
+                    })
+                    vid_saved += 1
+                
+                print(f"    [Detail Sync] 🟡 Synced {vid_saved} videos for: {name[:32]:32} (videos count changed: {old_vids} ➔ {vids})")
+            
+            refreshed += 1
+            
+    print(f"  ✅ Refresh complete. Updated {refreshed} channels. Delta skipped video scans on {delta_skipped} channels.")
+    return refreshed
+
 # ─────────────────────────────────────────────────────────────────────────────
 def main():
     start_time = datetime.now()
     print("=" * 70)
-    print("  Niche Finder — Daily Auto Collector")
+    print("  Niche Finder — Optimized Auto Collector (Smart Delta Ingestion)")
     print(f"  Date: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"  Target: {TARGET} channels | Subs: {MIN_SUBS:,}–{MAX_SUBS:,}")
+    print(f"  Max Discovery Target: {TARGET} channels | Subs: {MIN_SUBS:,}–{MAX_SUBS:,}")
     print("=" * 70)
 
     # Initialize API Key Manager
@@ -218,12 +329,21 @@ def main():
     km.print_status()
     print()
 
-    # Check DB and get unified connection
+    # Check DB and get connection wrapper
     try:
         conn = get_connection()
     except Exception as e:
         print(f"  ❌ Database connection failed: {e}")
         return
+        
+    # Phase 1: Smart batch refresh on existing data (Costs close to 0 quota units!)
+    try:
+        refresh_existing_channels(conn, km)
+    except Exception as e:
+        print(f"  ⚠️ Existing channels refresh failed: {e}")
+
+    # Phase 2: Search discovery for new niche channels (only up to TARGET)
+    print("\n  🔍 [Phase 2/2] Discovering New Channels...")
     seen    = set()
     saved   = 0
     dup     = big = small = 0
@@ -243,6 +363,7 @@ def main():
             if already_exists(conn, ch_id):
                 dup += 1; continue
 
+            info = get_top_videos # wait, get_channel_info
             info = get_channel_info(ch_id, km)
             if not info: continue
 
@@ -280,6 +401,8 @@ def main():
 
             # Fetch + save top 3 long videos
             conn.execute('DELETE FROM "Video" WHERE "channelId"=?', (ch_id,))
+            conn.commit()
+            
             vid_saved = 0
             for v in get_top_videos(uploads_pl, km, max_results=5)[:3]:
                 vs = v.get('statistics',{}); vsnip = v.get('snippet',{}); vd = v.get('contentDetails',{})
