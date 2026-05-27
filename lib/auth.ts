@@ -4,6 +4,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  trustHost: true, // Dynamically trust host headers (solves dynamic port 3000 vs 3001 issue)
   adapter: PrismaAdapter(prisma),
   providers: [
     Google({
@@ -39,17 +40,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return true
     },
 
-    async jwt({ token }) {
-      if (token.email) {
-        const dbUser = await prisma.user.findUnique({
-          where:  { email: token.email },
-          select: { id: true, role: true, status: true },
-        })
-        if (dbUser) {
-          token.id     = dbUser.id
-          token.role   = dbUser.role
-          token.status = dbUser.status
-        }
+    // EDGE-SAFE JWT CALLBACK:
+    // We only save role/status from the db-user during initial sign-in (when user parameter is present).
+    // Subsequent calls (e.g. inside middleware) read from the token directly without calling Prisma.
+    // This avoids edge-runtime SQLite filesystem access crashes in the Next.js Middleware!
+    async jwt({ token, user }) {
+      if (user) {
+        token.id     = user.id
+        token.role   = user.role
+        token.status = user.status
       }
       return token
     },
