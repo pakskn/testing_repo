@@ -237,15 +237,51 @@ export async function GET(request: NextRequest) {
         orderBy,
         skip: effectiveSkip,
         take: limit,
-        include: {
+        select: {
+          id: true,
+          channelId: true,
+          channelName: true,
+          channelHandle: true,
+          thumbnailUrl: true,
+          subscribers: true,
+          totalVideos: true,
+          totalViews: true,
+          channelType: true,
+          niche: true,
+          daysSinceStart: true,
+          avgViewsPerVideo: true,
+          outlierScore: true,
+          isMonetized: true,
+          isKids: true,
+          isNews: true,
+          isEntertainment: true,
+          isFaceless: true,
+          isAi: true,
+          isNano: true,
+          avgVideoLength: true,
+          shortsRatioLast30d: true,
+          createdAt: true,
+          updatedAt: true,
           videos: {
             where: {
               isShort: dbChannelType === 'short' ? true : false,
             },
             orderBy: { views: 'desc' },
-            take: 10,  // show up to 10 videos per channel (horizontal scroll)
-          },
-        },
+            take: 10,
+            select: {
+              id: true,
+              videoId: true,
+              title: true,
+              thumbnailUrl: true,
+              views: true,
+              duration: true,
+              publishedAt: true,
+              isOutlier: true,
+              isNano: true,
+              isShort: true,
+            }
+          }
+        }
       }),
     ])
 

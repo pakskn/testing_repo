@@ -141,13 +141,27 @@ export async function GET(req: NextRequest) {
         where,
         orderBy: { views: 'desc' },
         skip,
-        take: limit * 3, // extra for JS-side duration filtering
-        include: {
+        take: limit * 3,
+        select: {
+          id: true,
+          videoId: true,
+          title: true,
+          thumbnailUrl: true,
+          views: true,
+          duration: true,
+          publishedAt: true,
+          isOutlier: true,
+          isShort: true,
           channel: {
             select: {
-              channelId: true, channelName: true, channelHandle: true,
-              thumbnailUrl: true, niche: true, channelType: true,
-              subscribers: true, outlierScore: true,
+              channelId: true,
+              channelName: true,
+              channelHandle: true,
+              thumbnailUrl: true,
+              niche: true,
+              channelType: true,
+              subscribers: true,
+              outlierScore: true,
             },
           },
         },

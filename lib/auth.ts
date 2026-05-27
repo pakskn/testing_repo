@@ -16,6 +16,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: { signIn: "/signin" },
 
   callbacks: {
+    // SECURE SIGN-IN & SELF-BOOTSTRAPPING LOGIC:
+    // If no admins exist in the DB, the first logging-in user is promoted to master admin automatically.
+    // Otherwise, we fallback to checking the ADMIN_EMAIL list from environment variables.
+    // Once established, admins can promote other users directly from the /admin/users interface.
     async signIn({ user }) {
       try {
         if (!user.email) return false
@@ -28,8 +32,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!dbUser) return true
         if (dbUser.status === 'blocked') return '/signin?error=Blocked'
 
-        const adminEmails = (process.env.ADMIN_EMAIL || '').split(',').map(e => e.trim())
-        if (adminEmails.includes(user.email) && dbUser.role !== 'admin') {
+        const adminCount = await prisma.user.count({
+          where: { role: 'admin' },
+        })
+
+        let shouldPromote = false
+
+        if (adminCount === 0) {
+          // Self-bootstrapping master admin!
+          shouldPromote = true
+        } else {
+          // Fallback to secure environment variable
+          const adminEmails = (process.env.ADMIN_EMAIL || '').split(',').map(e => e.trim())
+          if (adminEmails.includes(user.email)) {
+            shouldPromote = true
+          }
+        }
+
+        if (shouldPromote && dbUser.role !== 'admin') {
           await prisma.user.update({
             where: { id: dbUser.id },
             data: { role: 'admin', status: 'active' },

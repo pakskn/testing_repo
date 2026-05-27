@@ -5,8 +5,21 @@ import { prisma } from '@/lib/prisma'
 export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
   const user = await prisma.user.findUnique({
     where: { id: params.id },
-    include: {
-      signInLogs: { orderBy: { signedInAt: 'desc' }, take: 50 },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      role: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+      emailVerified: true,
+      signInLogs: {
+        orderBy: { signedInAt: 'desc' },
+        take: 50,
+        select: { id: true, signedInAt: true },
+      },
       _count: { select: { signInLogs: true } },
     },
   })
