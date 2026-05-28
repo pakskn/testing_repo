@@ -4,6 +4,7 @@ import { Channel } from '@/types'
 import { useState, useRef, useEffect } from 'react'
 import { getRelatedNiches, describeRelated } from '@/lib/nicheGroups'
 import Image from 'next/image'
+import { useSession } from 'next-auth/react'
 
 export type SimilarRequest = {
   type: 'niche' | 'related_niches' | 'title' | 'same_age' | 'similar_size'
@@ -243,25 +244,47 @@ export default function ChannelCard({ channel, onFindSimilar }: {
   const [expanded, setExpanded] = useState(false)
   const { msg: toast, show: showToast } = useToast()
 
-  // Bookmark — persisted to localStorage
-  const SAVE_KEY = 'nf-saved-channels'
-  const [saved, setSaved] = useState(() => {
-    try {
-      const list: string[] = JSON.parse(localStorage.getItem(SAVE_KEY) || '[]')
-      return list.includes(channel.channelId)
-    } catch { return false }
-  })
+  const { data: session } = useSession()
+  const [saved, setSaved] = useState(false)
 
-  const toggleSave = () => {
+  // Sync saved status from database on mount if session exists
+  useEffect(() => {
+    if (!session?.user) return
+    async function checkSaved() {
+      try {
+        const res = await fetch('/api/channels/save')
+        if (res.ok) {
+          const list: { channelId: string; folder: string }[] = await res.json()
+          const isSaved = list.some(item => item.channelId === channel.channelId)
+          setSaved(isSaved)
+        }
+      } catch {}
+    }
+    checkSaved()
+  }, [session, channel.channelId])
+
+  const toggleSave = async () => {
+    if (!session?.user) {
+      showToast('Sign in to save channels!')
+      return
+    }
     try {
-      const list: string[] = JSON.parse(localStorage.getItem(SAVE_KEY) || '[]')
-      const next = saved
-        ? list.filter(id => id !== channel.channelId)
-        : [...list, channel.channelId]
-      localStorage.setItem(SAVE_KEY, JSON.stringify(next))
-      setSaved(!saved)
-      showToast(saved ? 'Removed from saved' : 'Saved!')
-    } catch {}
+      const folder = isShortForm ? 'short_form' : 'long_form'
+      const res = await fetch('/api/channels/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelId: channel.channelId, folder }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setSaved(data.saved)
+        showToast(data.saved ? 'Saved to bookmarks!' : 'Removed bookmark!')
+      } else {
+        showToast('Failed to save bookmark')
+      }
+    } catch {
+      showToast('Error syncing bookmark')
+    }
   }
 
   // Similar dropdown

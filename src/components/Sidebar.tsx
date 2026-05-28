@@ -19,6 +19,7 @@ export default function Sidebar({ onClose, isAdmin = false }: SidebarProps) {
   const pathname = usePathname()
   const { data: session } = useSession()
   const [channelsOpen, setChannelsOpen] = useState(true)
+  const [savedOpen, setSavedOpen] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
 
   const premium = isPremium(session?.user)
@@ -80,6 +81,51 @@ export default function Sidebar({ onClose, isAdmin = false }: SidebarProps) {
               </div>
             </div>
           </div>
+
+          {/* ── SAVED FOLDERS ── */}
+          {session?.user && (
+            <div className="px-3 mt-4 mb-1">
+              <button onClick={() => setSavedOpen(o => !o)}
+                className="w-full flex items-center justify-between px-2 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors group">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">💎</span>
+                  <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Saved Folders</span>
+                </div>
+                <svg className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${savedOpen ? 'rotate-0' : '-rotate-90'}`}
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              <div className={`overflow-hidden transition-all duration-200 ${savedOpen ? 'max-h-64 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                <div className="space-y-0.5">
+                  {[
+                    { href: '/channels/saved?folder=long_form',  label: 'Long Form Saved',  icon: '📁' },
+                    { href: '/channels/saved?folder=short_form', label: 'Shorts Saved',     icon: '📁' },
+                    { href: '/channels/saved?folder=terminated', label: 'Terminated Saved', icon: '📁' },
+                  ].map(item => {
+                    const active = pathname === '/channels/saved' && (
+                      typeof window !== 'undefined'
+                        ? new URLSearchParams(window.location.search).get('folder') === item.href.split('=')[1]
+                        : false
+                    )
+                    return (
+                      <Link key={item.href} href={item.href}
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-all ${
+                          active
+                            ? 'bg-indigo-600 text-white font-semibold shadow-md'
+                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1a1a1a]'
+                        }`}
+                      >
+                        <span className="flex-shrink-0 text-sm">{item.icon}</span>
+                        <span>{item.label}</span>
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
         </nav>
 
         {/* Footer */}

@@ -28,6 +28,7 @@ model User {
   accounts           Account[]
   sessions           Session[]
   signInLogs         SignInLog[]
+  savedChannels      SavedChannel[]
 }
 
 model Account {
@@ -101,6 +102,8 @@ model Channel {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   videos            Video[]
+  savedByUsers      SavedChannel[]
+  snapshots         ChannelSnapshot[]
 
   @@index([isActive, channelType])
   @@index([isActive, channelType, niche])
@@ -140,5 +143,32 @@ model Video {
   @@index([views])
   @@index([isOutlier])
   @@index([publishedAt])
+}
+
+model SavedChannel {
+  id        String   @id @default(cuid())
+  userId    String
+  channelId String
+  folder    String   @default("long_form") // long_form | short_form | terminated
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel   Channel  @relation(fields: [channelId], references: [channelId], onDelete: Cascade)
+
+  @@unique([userId, channelId])
+  @@index([userId])
+}
+
+model ChannelSnapshot {
+  id          String   @id @default(cuid())
+  channelId   String
+  subscribers Int      @default(0)
+  totalViews  BigInt   @default(0)
+  capturedAt  DateTime @default(now())
+
+  channel     Channel  @relation(fields: [channelId], references: [channelId], onDelete: Cascade)
+
+  @@index([channelId])
+  @@index([capturedAt])
 }
 

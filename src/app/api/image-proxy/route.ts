@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import fs from 'fs'
+import path from 'path'
 
 const ALLOWED_HOSTNAMES = [
   'i.ytimg.com',
@@ -16,6 +18,25 @@ const TRANSPARENT_PIXEL = Buffer.from(
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const imageUrl = searchParams.get('url')
+  const channelId = searchParams.get('channelId')
+
+  // Prioritize local thumbnail backup check for terminated/deleted resiliency
+  if (channelId) {
+    const localPath = path.join(process.cwd(), 'public', 'thumbnails', `${channelId}.jpg`)
+    if (fs.existsSync(localPath)) {
+      try {
+        const buffer = fs.readFileSync(localPath)
+        return new NextResponse(buffer, {
+          headers: {
+            'Content-Type': 'image/jpeg',
+            'Cache-Control': 'public, max-age=31536000, immutable',
+          }
+        })
+      } catch (err) {
+        console.error('Error reading local thumbnail backup:', err)
+      }
+    }
+  }
 
   if (!imageUrl) {
     return new NextResponse('Missing url parameter', { status: 400 })
