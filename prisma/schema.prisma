@@ -10,18 +10,24 @@ datasource db {
 // ─── NextAuth User Management ─────────────────────────────────────────────────
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  role          String    @default("user")     // admin | user
-  status        String    @default("pending")  // pending | active | blocked
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  accounts      Account[]
-  sessions      Session[]
-  signInLogs    SignInLog[]
+  id                 String    @id @default(cuid())
+  name               String?
+  email              String    @unique
+  emailVerified      DateTime?
+  image              String?
+  role               String    @default("user")     // admin | user
+  status             String    @default("pending")  // pending | active | blocked
+  
+  // Subscription Plan Fields
+  plan               String    @default("free")     // free | premium
+  subscriptionStatus String    @default("active")   // active | cancelled | expired | past_due
+  planExpiresAt      DateTime?
+
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  accounts           Account[]
+  sessions           Session[]
+  signInLogs         SignInLog[]
 }
 
 model Account {

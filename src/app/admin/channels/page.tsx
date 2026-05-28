@@ -2,6 +2,9 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
+import { isPremium } from '@/lib/premium'
+import PremiumModal from '@/components/PremiumModal'
 
 interface Channel {
   id: string
@@ -35,10 +38,46 @@ function fmt(n: number) {
 }
 
 export default function AdminChannels() {
+  const { data: session } = useSession()
+  const [modalOpen, setModalOpen] = useState(false)
   const [channels, setChannels]   = useState<Channel[]>([])
   const [total, setTotal]         = useState(0)
   const [page, setPage]           = useState(1)
   const [search, setSearch]       = useState('')
+
+  const handleExportCSV = () => {
+    if (!isPremium(session?.user)) {
+      setModalOpen(true)
+      return
+    }
+    
+    // Convert channels list to CSV
+    const headers = ['Channel Name', 'Handle', 'Channel ID', 'Subscribers', 'Videos', 'Views', 'Type', 'Category', 'Outlier Score', 'Monetized', 'Active']
+    const rows = channels.map(c => [
+      `"${c.channelName.replace(/"/g, '""')}"`,
+      c.channelHandle || '',
+      c.channelId,
+      c.subscribers,
+      c.totalVideos,
+      c.totalViews,
+      c.channelType,
+      c.niche || '',
+      c.outlierScore.toFixed(2),
+      c.isMonetized ? 'Yes' : 'No',
+      c.isActive ? 'Yes' : 'No'
+    ])
+    
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + [headers.join(','), ...rows.map(e => e.join(','))].join('\n')
+    
+    const encodedUri = encodeURI(csvContent)
+    const link = document.createElement("a")
+    link.setAttribute("href", encodedUri)
+    link.setAttribute("download", `niche_finder_channels_page_${page}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
   // Read type from URL on mount
   const [typeFilter, setTypeFilter] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -96,10 +135,18 @@ export default function AdminChannels() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Channels</h1>
           <p className="text-gray-500 text-sm">{total} total channels</p>
         </div>
-        <Link href="/admin/channels/new"
-          className="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors">
-          ➕ Add Channel
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md active:scale-95 transition-all"
+          >
+            📤 Export CSV
+          </button>
+          <Link href="/admin/channels/new"
+            className="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors">
+            ➕ Add Channel
+          </Link>
+        </div>
       </div>
 
       {/* Type Tab Buttons */}
@@ -272,6 +319,8 @@ export default function AdminChannels() {
           </div>
         )}
       </div>
+      {/* Premium Upgrade Modal */}
+      <PremiumModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
     </div>
   )
 }

@@ -108,6 +108,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id     = user.id
         token.role   = user.role
         token.status = user.status
+        token.plan   = user.plan || 'free'
+        token.subscriptionStatus = user.subscriptionStatus || 'active'
+        token.planExpiresAt = user.planExpiresAt
       }
       return token
     },
@@ -117,6 +120,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id     = token.id as string
         session.user.role   = (token.role as string) || 'user'
         session.user.status = (token.status as string) || 'pending'
+        session.user.plan   = (token.plan as string) || 'free'
+        session.user.subscriptionStatus = (token.subscriptionStatus as string) || 'active'
+        session.user.planExpiresAt = token.planExpiresAt as any
       }
       return session
     },
