@@ -363,30 +363,41 @@ function getScrapedChannelInfo() {
     info.avatar = avatarImg.src;
   }
 
-  // Try multiple selectors for Subscriber Count
-  const subElem = 
-    document.querySelector("#channel-header #subscriber-count") ||
-    document.querySelector("span#subscriber-count") ||
-    document.querySelector("#owner-sub-count") ||
-    document.querySelector("#header-author metadata");
+  // Scan channel meta elements and full header text for subscriber count (e.g. "7.57K subscribers")
+  const metaContainer = document.querySelector("#meta") || 
+                        document.querySelector("#channel-header-container") || 
+                        document.querySelector("#channel-header");
+  let metaText = metaContainer ? metaContainer.textContent : "";
+  
+  if (!metaText || !metaText.toLowerCase().includes("subscrib")) {
+    metaText = document.body.innerText || "";
+  }
 
-  if (subElem && subElem.textContent) {
-    const rawSubs = subElem.textContent.trim();
-    info.subscribersFmt = rawSubs.replace(" subscribers", "").replace(" subs", "").trim();
-    
-    // Parse to actual number estimate
-    let clean = info.subscribersFmt.toLowerCase().replace(/[^0-9.km]/g, "");
+  const match = metaText.match(/([\d.]+)\s*([KkMmBb]?)\s*subscriber/i);
+  if (match) {
+    const val = parseFloat(match[1]);
+    const unit = (match[2] || "").toUpperCase();
     let multiplier = 1;
-    if (clean.includes("m")) {
-      multiplier = 1000000;
-      clean = clean.replace("m", "");
-    } else if (clean.includes("k")) {
-      multiplier = 1000;
-      clean = clean.replace("k", "");
-    }
-    const val = parseFloat(clean);
-    if (!isNaN(val)) {
-      info.subscribers = Math.round(val * multiplier);
+    if (unit === "M") multiplier = 1000000;
+    else if (unit === "K") multiplier = 1000;
+    else if (unit === "B") multiplier = 1000000000;
+    
+    info.subscribers = Math.round(val * multiplier);
+    info.subscribersFmt = val + unit;
+  } else {
+    // Standard ID check backup
+    const subElem = document.querySelector("#subscriber-count") || document.querySelector("#owner-sub-count");
+    if (subElem && subElem.textContent) {
+      const raw = subElem.textContent.trim();
+      let clean = raw.toLowerCase().replace(/[^0-9.km]/g, "");
+      let multiplier = 1;
+      if (clean.includes("m")) { multiplier = 1000000; clean = clean.replace("m", ""); }
+      else if (clean.includes("k")) { multiplier = 1000; clean = clean.replace("k", ""); }
+      const val = parseFloat(clean);
+      if (!isNaN(val)) {
+        info.subscribers = Math.round(val * multiplier);
+        info.subscribersFmt = clean.toUpperCase();
+      }
     }
   }
 
@@ -530,8 +541,10 @@ function showMonetizationModal(channel) {
 function showAnalyticsModal(channel) {
   // Try dynamic monthly views or default to views per video
   const subCountFmt = channel.subscribers >= 1000000 
-    ? (channel.subscribers / 1000000).toFixed(1) + "M"
-    : (channel.subscribers / 1000).toFixed(0) + "K";
+    ? (channel.subscribers / 1000000).toFixed(2).replace(/\.?0+$/, "") + "M"
+    : channel.subscribers >= 1000 
+      ? (channel.subscribers / 1000).toFixed(2).replace(/\.?0+$/, "") + "K"
+      : channel.subscribers.toString();
     
   const viewsFmt = channel.totalViews >= 1000000000
     ? (channel.totalViews / 1000000000).toFixed(1) + "B"
@@ -724,8 +737,10 @@ function mountBanner(channel, isDatabaseVerified = true) {
   banner.id = "nf-action-banner";
 
   const subCountFmt = channel.subscribers >= 1000000 
-    ? (channel.subscribers / 1000000).toFixed(1) + "M"
-    : (channel.subscribers / 1000).toFixed(0) + "K";
+    ? (channel.subscribers / 1000000).toFixed(2).replace(/\.?0+$/, "") + "M"
+    : channel.subscribers >= 1000 
+      ? (channel.subscribers / 1000).toFixed(2).replace(/\.?0+$/, "") + "K"
+      : channel.subscribers.toString();
 
   const outlierText = channel.outlierScore ? `${channel.outlierScore.toFixed(1)}x Outlier` : "New Channel";
   const badgeHtml = isDatabaseVerified 
