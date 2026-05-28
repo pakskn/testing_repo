@@ -33,9 +33,28 @@ function applySecurityHeaders(response: NextResponse) {
   return response
 }
 
+function applyCorsHeaders(response: NextResponse, origin: string) {
+  response.headers.set('Access-Control-Allow-Origin', origin)
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, DELETE, PUT')
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  response.headers.set('Access-Control-Allow-Credentials', 'true')
+  return response
+}
+
 export default auth(async function middleware(req) {
   const token = req.auth // In Auth.js v5, the session is in req.auth
   const path  = req.nextUrl.pathname
+  const origin = req.headers.get('origin') || '*'
+
+  // OPTIONS preflight requests bypass normal auth to return allowed headers instantly
+  if (path.startsWith('/api/')) {
+    if (req.method === 'OPTIONS') {
+      const response = new NextResponse(null, { status: 200 })
+      applyCorsHeaders(response, origin)
+      response.headers.set('Access-Control-Max-Age', '86400')
+      return response
+    }
+  }
 
   // 1. Authenticated check for protected routes
   const isAuthenticated = !!token
@@ -47,6 +66,14 @@ export default auth(async function middleware(req) {
                        path === '/favicon.ico'
 
   if (!isAuthenticated && !isPublicPath) {
+    if (path.startsWith('/api/')) {
+      const response = NextResponse.json(
+        { error: 'Unauthorized', message: 'Please sign in to access this feature.' },
+        { status: 401 }
+      )
+      applyCorsHeaders(response, origin)
+      return applySecurityHeaders(response)
+    }
     return applySecurityHeaders(NextResponse.redirect(new URL('/signin', req.url)))
   }
 
@@ -76,6 +103,7 @@ export default auth(async function middleware(req) {
           },
         }
       )
+      applyCorsHeaders(errorResponse, origin)
       return applySecurityHeaders(errorResponse)
     }
 
@@ -84,6 +112,7 @@ export default auth(async function middleware(req) {
     response.headers.set('X-RateLimit-Limit', limitResult.limit.toString())
     response.headers.set('X-RateLimit-Remaining', limitResult.remaining.toString())
     response.headers.set('X-RateLimit-Reset', Math.ceil(limitResult.reset / 1000).toString())
+    applyCorsHeaders(response, origin)
     return applySecurityHeaders(response)
   }
 
@@ -106,7 +135,11 @@ export default auth(async function middleware(req) {
     return applySecurityHeaders(NextResponse.redirect(new URL('/signin?error=Blocked', req.url)))
   }
 
-  return applySecurityHeaders(NextResponse.next())
+  const finalResponse = NextResponse.next()
+  if (path.startsWith('/api/')) {
+    applyCorsHeaders(finalResponse, origin)
+  }
+  return applySecurityHeaders(finalResponse)
 })
 
 export const config = {
