@@ -15,21 +15,21 @@ function injectStyles() {
       position: fixed;
       bottom: 24px;
       left: 50%;
-      transform: translateX(-50%) translateY(120px);
-      z-index: 2147483640;
-      width: 92%;
-      max-width: 960px;
-      background: rgba(13, 13, 15, 0.85);
-      backdrop-filter: blur(16px) saturate(180%);
-      -webkit-backdrop-filter: blur(16px) saturate(180%);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 24px;
-      padding: 14px 28px;
+      transform: translateX(-50%) translateY(100px);
+      z-index: 999999;
+      width: 90%;
+      max-width: 900px;
+      background: rgba(18, 18, 20, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 14px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       color: #ffffff;
       transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
       opacity: 0;
@@ -38,21 +38,17 @@ function injectStyles() {
       transform: translateX(-50%) translateY(0);
       opacity: 1;
     }
-    
-    /* LEFT SECTION (Channel Details) */
     .nf-left {
       display: flex;
       align-items: center;
       gap: 16px;
     }
     .nf-avatar {
-      width: 46px;
-      height: 46px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
-      border: 2px solid rgba(99, 102, 241, 0.4);
+      border: 2px solid rgba(99, 102, 241, 0.5);
       object-fit: cover;
-      background: #1e1e24;
-      flex-shrink: 0;
     }
     .nf-meta h3 {
       margin: 0;
@@ -61,67 +57,55 @@ function injectStyles() {
       letter-spacing: -0.3px;
       display: flex;
       align-items: center;
-      gap: 8px;
-      color: #ffffff;
+      gap: 6px;
     }
     .nf-meta p {
-      margin: 3px 0 0 0;
+      margin: 2px 0 0 0;
       font-size: 11px;
       color: #a1a1aa;
-      line-height: 1.4;
     }
     .nf-outlier-badge {
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 800;
       background: rgba(16, 185, 129, 0.15);
       color: #10b981;
-      padding: 2.5px 9px;
+      padding: 2.5px 8px;
       border-radius: 9999px;
-      border: 1px solid rgba(16, 185, 129, 0.25);
-      letter-spacing: 0.2px;
-      text-transform: uppercase;
+      border: 1px solid rgba(16, 185, 129, 0.2);
     }
     .nf-offline-badge {
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 800;
       background: rgba(239, 68, 68, 0.15);
       color: #ef4444;
-      padding: 2.5px 9px;
+      padding: 2.5px 8px;
       border-radius: 9999px;
-      border: 1px solid rgba(239, 68, 68, 0.25);
-      letter-spacing: 0.2px;
-      text-transform: uppercase;
+      border: 1px solid rgba(239, 68, 68, 0.2);
     }
-
-    /* RIGHT SECTION (Button Bar) */
     .nf-right {
       display: flex;
       align-items: center;
       gap: 8px;
     }
     .nf-btn {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       color: #ffffff;
       font-size: 12px;
       font-weight: 600;
       padding: 8px 14px;
-      border-radius: 12px;
+      border-radius: 10px;
       cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.2s ease;
       display: flex;
       align-items: center;
       gap: 6px;
       text-decoration: none;
-      user-select: none;
     }
     .nf-btn:hover {
-      background: rgba(255, 255, 255, 0.12);
-      border-color: rgba(255, 255, 255, 0.18);
-      transform: translateY(-1.5px);
-    }
-    .nf-btn:active {
-      transform: translateY(0.5px);
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
     }
     .nf-btn-primary {
       background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
@@ -130,22 +114,20 @@ function injectStyles() {
     }
     .nf-btn-primary:hover {
       background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
-      box-shadow: 0 6px 18px rgba(99, 102, 241, 0.35);
     }
     .nf-btn-saved {
       background: rgba(99, 102, 241, 0.15) !important;
-      border-color: rgba(99, 102, 241, 0.4) !important;
+      border-color: rgba(99, 102, 241, 0.3) !important;
       color: #818cf8 !important;
     }
-    
     .nf-close {
-      color: #52525b;
+      color: #71717a;
       background: none;
       border: none;
       cursor: pointer;
       font-size: 16px;
-      margin-left: 4px;
-      padding: 6px;
+      margin-left: 8px;
+      padding: 4px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -154,7 +136,7 @@ function injectStyles() {
     }
     .nf-close:hover {
       color: #ffffff;
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
     }
 
     /* MODAL SYSTEM ON TOP OF YOUTUBE */
