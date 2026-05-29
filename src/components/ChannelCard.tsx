@@ -1,6 +1,6 @@
 'use client'
 
-import { Channel } from '@/types'
+import { Channel, Video } from '@/types'
 import { useState, useRef, useEffect } from 'react'
 import { getRelatedNiches, describeRelated } from '@/lib/nicheGroups'
 import Image from 'next/image'
@@ -35,13 +35,42 @@ function timeAgo(dateStr: string | null): string {
   return `${Math.floor(days / 365)}y ago`
 }
 
-function outlierColor(score: number) {
-  if (score >= 5) return { text: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-400/10' }
-  if (score >= 2) return { text: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-400/10' }
-  return { text: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-400/10' }
+function getFirstUploadDate(videos: Video[]): string {
+  if (!videos || videos.length === 0) return 'N/A'
+  const dates = videos
+    .map(v => v.publishedAt ? new Date(v.publishedAt).getTime() : 0)
+    .filter(t => t > 0)
+  if (dates.length === 0) return 'N/A'
+  const minDate = new Date(Math.min(...dates))
+  return minDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-// YouTube video IDs are exactly 11 chars: A-Z a-z 0-9 _ -
+function getEstimatedCreationDate(daysSinceStart: number): string {
+  if (!daysSinceStart) return 'N/A'
+  const d = new Date()
+  d.setDate(d.getDate() - daysSinceStart)
+  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+function outlierColor(score: number) {
+  if (score >= 5) return { text: 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'Very High Outlier' }
+  if (score >= 2) return { text: 'text-amber-400 border-amber-500/20 bg-amber-500/10', bg: 'bg-amber-500/10', border: 'border-amber-500/20', label: 'Outlier' }
+  return { text: 'text-rose-400 border-rose-500/20 bg-rose-500/10', bg: 'bg-rose-500/10', border: 'border-rose-500/20', label: 'Standard' }
+}
+
+function getRelativeAge(daysSinceStart: number): string {
+  if (!daysSinceStart) return 'N/A'
+  const years = daysSinceStart / 365
+  if (years >= 1) {
+    return `${years.toFixed(1)} years ago`
+  }
+  const months = Math.floor(daysSinceStart / 30)
+  if (months >= 1) {
+    return `${months} months ago`
+  }
+  return `${daysSinceStart} days ago`
+}
+
 function isRealYouTubeId(id: string): boolean {
   return /^[A-Za-z0-9_-]{11}$/.test(id)
 }
@@ -53,7 +82,6 @@ function VideoThumbnail({ videoId, storedUrl, title, duration, isShortForm = fal
   duration: string | null
   isShortForm?: boolean
 }) {
-  // Try 3 sources in order: mqdefault → hqdefault → stored API URL → placeholder
   const sources = [
     ...(isRealYouTubeId(videoId) ? [
       `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
@@ -68,9 +96,9 @@ function VideoThumbnail({ videoId, storedUrl, title, duration, isShortForm = fal
 
   const handleError = () => {
     if (srcIndex < sources.length - 1) {
-      setSrcIndex(i => i + 1)  // try next source
+      setSrcIndex(i => i + 1)
     } else {
-      setSrcIndex(sources.length)  // all failed → placeholder
+      setSrcIndex(sources.length)
     }
   }
 
@@ -78,7 +106,7 @@ function VideoThumbnail({ videoId, storedUrl, title, duration, isShortForm = fal
   const proxiedSrc = currentSrc ? `/api/image-proxy?url=${encodeURIComponent(currentSrc)}` : ''
 
   return (
-    <div className={`relative ${aspectClass} rounded-lg overflow-hidden bg-gray-100 dark:bg-[#252525] mb-1.5`}>
+    <div className={`relative ${aspectClass} rounded-lg overflow-hidden bg-zinc-900/50 mb-1.5 border border-zinc-800/80`}>
       {!showPlaceholder ? (
         <Image
           key={currentSrc}
@@ -86,13 +114,13 @@ function VideoThumbnail({ videoId, storedUrl, title, duration, isShortForm = fal
           alt={title}
           fill
           sizes="(max-width: 768px) 33vw, 15vw"
-          className="object-cover group-hover:opacity-75 transition-opacity"
+          className="object-contain group-hover:opacity-75 transition-all duration-300"
           onError={handleError}
         />
       ) : (
         <div className="w-full h-full flex flex-col items-center justify-center gap-1">
-          <span className="text-gray-300 dark:text-gray-600 text-3xl">▶</span>
-          {isShortForm && <span className="text-[9px] text-gray-300 dark:text-gray-700">#Shorts</span>}
+          <span className="text-zinc-500 text-3xl">▶</span>
+          {isShortForm && <span className="text-[9px] text-zinc-600">#Shorts</span>}
         </div>
       )}
       {duration && !showPlaceholder && (
@@ -118,9 +146,9 @@ function ChannelAvatar({ channelId, thumbnailUrl, channelName }: {
         <Image
           src={proxiedAvatar}
           alt={channelName}
-          width={40}
-          height={40}
-          className="w-10 h-10 rounded-full object-cover ring-2 ring-gray-200 dark:ring-[#2a2a2a]"
+          width={44}
+          height={44}
+          className="w-11 h-11 rounded-full object-cover border border-zinc-800"
           onError={() => setFailed(true)}
         />
       </a>
@@ -129,7 +157,7 @@ function ChannelAvatar({ channelId, thumbnailUrl, channelName }: {
 
   return (
     <a href={`https://youtube.com/channel/${channelId}`} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-      <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-[#2a2a2a] flex items-center justify-center text-gray-600 dark:text-white font-bold text-sm ring-2 ring-gray-300 dark:ring-[#3a3a3a]">
+      <div className="w-11 h-11 rounded-full bg-zinc-850 flex items-center justify-center text-zinc-300 font-bold text-sm border border-zinc-800">
         {channelName.charAt(0).toUpperCase()}
       </div>
     </a>
@@ -141,6 +169,10 @@ function VideoScroller({ videos, isShortForm }: { videos: Channel['videos']; isS
   const [canScrollLeft,  setCanScrollLeft]  = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
 
+  const [isDragging, setIsDragging] = useState(false)
+  const startX = useRef(0)
+  const scrollLeftStart = useRef(0)
+
   const checkScroll = () => {
     const el = scrollRef.current
     if (!el) return
@@ -148,7 +180,6 @@ function VideoScroller({ videos, isShortForm }: { videos: Channel['videos']; isS
     setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
   }
 
-  // After render, check actual scrollability
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
@@ -159,7 +190,6 @@ function VideoScroller({ videos, isShortForm }: { videos: Channel['videos']; isS
     return () => clearTimeout(t)
   }, [videos])
 
-  // Also re-check on window resize
   useEffect(() => {
     const handler = () => checkScroll()
     window.addEventListener('resize', handler)
@@ -173,14 +203,34 @@ function VideoScroller({ videos, isShortForm }: { videos: Channel['videos']; isS
     el.scrollBy({ left: dir === 'right' ? step : -step, behavior: 'smooth' })
   }
 
-  const ARROW_BTN = 'w-6 h-6 bg-gray-200 dark:bg-[#333] hover:bg-gray-300 dark:hover:bg-[#444] text-gray-700 dark:text-gray-200 rounded-full flex items-center justify-center transition-all text-base leading-none select-none flex-shrink-0'
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const el = scrollRef.current
+    if (!el) return
+    setIsDragging(true)
+    startX.current = e.pageX - el.offsetLeft
+    scrollLeftStart.current = el.scrollLeft
+  }
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return
+    e.preventDefault()
+    const el = scrollRef.current
+    if (!el) return
+    const x = e.pageX - el.offsetLeft
+    const walk = (x - startX.current) * 1.5
+    el.scrollLeft = scrollLeftStart.current - walk
+  }
+
+  const handleMouseUpOrLeave = () => {
+    setIsDragging(false)
+  }
+
+  const ARROW_BTN = 'w-6 h-6 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-zinc-200 rounded-full flex items-center justify-center transition-all text-xs leading-none select-none flex-shrink-0'
 
   return (
-    <div className="border-t border-gray-100 dark:border-[#2a2a2a] p-4">
-
-      {/* Header row — arrows here in the title bar */}
+    <div className="border-t border-zinc-900 p-4">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-[10px] text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-widest">
+        <span className="text-[10px] text-zinc-500 font-semibold uppercase tracking-widest font-mono">
           Most Popular Videos
         </span>
         <div className="flex items-center gap-1">
@@ -193,11 +243,14 @@ function VideoScroller({ videos, isShortForm }: { videos: Channel['videos']; isS
         </div>
       </div>
 
-      {/* Scrollable videos — full width, no arrows inside */}
       <div
         ref={scrollRef}
         onScroll={checkScroll}
-        className="flex gap-2 overflow-x-auto pb-1"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUpOrLeave}
+        onMouseLeave={handleMouseUpOrLeave}
+        className="flex gap-2 overflow-x-auto pb-1 cursor-grab active:cursor-grabbing select-none scrollbar-hide"
         style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
       >
         {videos.map(video => (
@@ -216,10 +269,10 @@ function VideoScroller({ videos, isShortForm }: { videos: Channel['videos']; isS
               duration={video.duration}
               isShortForm={isShortForm}
             />
-            <p className="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-1 group-hover:text-gray-900 dark:group-hover:text-white transition-colors leading-tight mt-0.5">
+            <p className="text-[11px] text-zinc-400 line-clamp-1 group-hover:text-white transition-colors leading-tight mt-0.5">
               {video.title}
             </p>
-            <p className="text-[10px] text-gray-400 dark:text-gray-600 mt-0.5">
+            <p className="text-[10px] text-zinc-500 font-mono mt-0.5">
               {formatNumber(video.views)} · {timeAgo(video.publishedAt)}
             </p>
           </a>
@@ -239,7 +292,7 @@ export default function ChannelCard({ channel, onFindSimilar }: {
   channel: Channel
   onFindSimilar?: (req: SimilarRequest) => void
 }) {
-  const { text: scoreText, bg: scoreBg } = outlierColor(channel.outlierScore)
+  const { text: scoreText, bg: scoreBg, border: scoreBorder, label: scoreLabel } = outlierColor(channel.outlierScore)
   const isShortForm = channel.channelType === 'short_form' || channel.channelType === 'short'
   const [expanded, setExpanded] = useState(false)
   const { msg: toast, show: showToast } = useToast()
@@ -247,7 +300,6 @@ export default function ChannelCard({ channel, onFindSimilar }: {
   const { data: session } = useSession()
   const [saved, setSaved] = useState(false)
 
-  // Sync saved status from database on mount if session exists
   useEffect(() => {
     if (!session?.user) return
     async function checkSaved() {
@@ -287,7 +339,6 @@ export default function ChannelCard({ channel, onFindSimilar }: {
     }
   }
 
-  // Similar dropdown
   const [showSimilarMenu, setShowSimilarMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -301,7 +352,6 @@ export default function ChannelCard({ channel, onFindSimilar }: {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [showSimilarMenu])
 
-  // Helper: extract keywords from channel name
   const titleKeyword = (() => {
     const stopwords = ['the','a','an','and','or','of','in','on','at','to','for','with','by','is','are','was']
     return channel.channelName
@@ -313,14 +363,12 @@ export default function ChannelCard({ channel, onFindSimilar }: {
       .join(' ')
   })()
 
-  // Helper: days range ±10% with min ±5 days
   const getDaysRange = () => {
     const d = channel.daysSinceStart
     const spread = Math.max(5, Math.floor(d * 0.1))
     return { daysMin: Math.max(0, d - spread), daysMax: d + spread }
   }
 
-  // Helper: subscriber range ±10%
   const getSubsRange = () => ({
     subsMin: Math.max(100, Math.floor(channel.subscribers * 0.9)),
     subsMax: Math.ceil(channel.subscribers * 1.1),
@@ -341,12 +389,45 @@ export default function ChannelCard({ channel, onFindSimilar }: {
     }
   }
 
-  return (
-    <div className="relative bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-[#2a2a2a] rounded-xl overflow-hidden hover:border-gray-300 dark:hover:border-[#3a3a3a] transition-colors shadow-sm dark:shadow-none">
+  // ── NexLev + vidIQ Estimation Metrics ──
+  const monthlyViewsEst = Number(channel.monthlyViews) || (channel.avgViewsPerVideo * (isShortForm ? 15 : 4))
+  
+  const minRPM = isShortForm ? 0.05 : 2.00
+  const maxRPM = isShortForm ? 0.15 : 6.00
 
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between p-4">
-        <div className="flex items-center gap-3 min-w-0">
+  const formatRevenue = (val: number): string => {
+    if (val <= 0) return '$0'
+    if (val >= 1000) return `$${(val / 1000).toFixed(1)}K`
+    return `$${val.toFixed(0)}`
+  }
+
+  const revenueRange = `${formatRevenue((monthlyViewsEst / 1000) * minRPM)} - ${formatRevenue((monthlyViewsEst / 1000) * maxRPM)}`
+  const rpmLabel = `$${minRPM.toFixed(2)} - $${maxRPM.toFixed(2)}`
+
+  // Oldest Upload Date Check
+  const oldestVideoUpload = getFirstUploadDate(channel.videos)
+  const activeSince = oldestVideoUpload !== 'N/A' ? oldestVideoUpload : getEstimatedCreationDate(channel.daysSinceStart)
+  
+  // Dynamic extraction of video language
+  const channelLang = channel.videos.find(v => v.language)?.language || 'English'
+  const subNiches = channel.niche ? getRelatedNiches(channel.niche).slice(0, 3) : []
+
+  // Dynamic Country Fallback
+  const channelCountry = (channel as any).country || 'N/A'
+
+  return (
+    <div className="relative bg-[#09090b] border border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-700 transition-colors shadow-sm">
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-zinc-950 text-white text-xs font-mono px-3.5 py-2 rounded-lg border border-zinc-850 shadow-xl z-50 whitespace-nowrap pointer-events-none">
+          {toast}
+        </div>
+      )}
+
+      {/* ── HEADER BLOCK ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5">
+        <div className="flex items-center gap-3.5 min-w-0">
           <ChannelAvatar
             channelId={channel.channelId}
             thumbnailUrl={channel.thumbnailUrl}
@@ -354,270 +435,251 @@ export default function ChannelCard({ channel, onFindSimilar }: {
           />
 
           <div className="min-w-0">
-            <a
-              href={`https://youtube.com/channel/${channel.channelId}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 group"
-            >
-              <span className="text-gray-900 dark:text-white font-semibold text-sm group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors truncate max-w-[160px]">
-                {channel.channelName}
-              </span>
-              <span
-                title={channel.isMonetized ? 'Monetized' : 'Not Monetized'}
-                className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-black flex-shrink-0 ${
-                  channel.isMonetized
-                    ? 'bg-green-500 text-white'
-                    : 'bg-red-400 text-white'
-                }`}
+            <div className="flex items-center gap-2 flex-wrap">
+              <a
+                href={`https://youtube.com/channel/${channel.channelId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-zinc-100 hover:text-indigo-400 hover:underline transition-colors truncate max-w-[180px] text-sm"
               >
-                $
-              </span>
-            </a>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              {channel.niche && (
-                <span className="text-[11px] bg-gray-100 dark:bg-[#252525] text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full border border-gray-200 dark:border-[#333]">
-                  {channel.niche}
+                {channel.channelName}
+              </a>
+              
+              {/* Only show Faceless Badge as requested */}
+              {channel.isFaceless && (
+                <span className="inline-flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 text-zinc-400 px-2 py-0.5 rounded text-[10px] font-mono font-semibold select-none">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" /> Faceless
                 </span>
               )}
-              <span className="text-[11px] text-gray-400 dark:text-gray-600">
-                {formatNumber(channel.subscribers)} subs
-              </span>
             </div>
+            
+            <p className="text-[10px] text-zinc-500 font-mono mt-0.5 truncate select-all">
+              {channel.channelHandle || `@${channel.channelName.toLowerCase().replace(/[^a-z0-9]/g, '')}`}
+            </p>
           </div>
         </div>
 
-        {/* Toast notification */}
-        {toast && (
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-xs font-medium px-3 py-1.5 rounded-full shadow-lg z-10 whitespace-nowrap pointer-events-none">
-            {toast}
-          </div>
-        )}
-
-        <div className="flex flex-col items-end gap-1 flex-shrink-0">
-          {/* Similar Channels dropdown */}
+        {/* Action Controls */}
+        <div className="flex items-center gap-2 self-end sm:self-center">
+          {/* Similar dropdown */}
           {onFindSimilar && (
             <div ref={menuRef} className="relative">
               <button
                 onClick={() => setShowSimilarMenu(s => !s)}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                   showSimilarMenu
-                    ? 'bg-blue-600 text-white border-blue-600'
-                    : 'bg-white dark:bg-[#1a1a1a] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-[#2a2a2a] hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400'
+                    ? 'bg-indigo-600 text-white border-indigo-500'
+                    : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white hover:bg-zinc-800'
                 }`}
               >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Similar
+                🔍 Similar
                 <svg className={`w-2.5 h-2.5 transition-transform ${showSimilarMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
 
-              {/* Dropdown menu */}
+              {/* Similar Options */}
               {showSimilarMenu && (
-                <div className="absolute right-0 top-full mt-1.5 w-64 bg-white dark:bg-[#1c1c1c] border border-gray-200 dark:border-[#2a2a2a] rounded-xl shadow-xl z-50 overflow-hidden">
-                  {/* Header */}
-                  <div className="px-3 py-2 bg-gray-50 dark:bg-[#111] border-b border-gray-100 dark:border-[#222]">
-                    <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                      Find Similar to {channel.channelName.slice(0, 20)}{channel.channelName.length > 20 ? '...' : ''}
+                <div className="absolute right-0 top-full mt-1.5 w-64 bg-[#09090b] border border-zinc-800 rounded-lg shadow-xl z-50 overflow-hidden font-sans">
+                  <div className="px-3 py-2 bg-[#0d0d0f] border-b border-zinc-800">
+                    <p className="text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-widest">
+                      Competitors Finder
                     </p>
                   </div>
 
-                  {/* Options */}
                   <div className="py-1">
-
-                    {/* Same Niche */}
                     {channel.niche && (
                       <button
                         onClick={() => fireSimilar({ type: 'niche', channelName: channel.channelName, niches: [channel.niche!] })}
-                        className="w-full flex items-start gap-2.5 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors text-left"
+                        className="w-full flex items-start gap-2.5 px-3 py-2 hover:bg-zinc-900 transition-colors text-left"
                       >
-                        <span className="text-base mt-0.5">🏷️</span>
+                        <span className="text-xs">🏷️</span>
                         <div className="min-w-0">
-                          <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">Same Niche</p>
-                          <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{channel.niche} channels only</p>
+                          <p className="text-xs font-semibold text-zinc-200">Same Niche</p>
+                          <p className="text-[10px] text-zinc-500 truncate">{channel.niche} channels only</p>
                         </div>
                       </button>
                     )}
 
-                    {/* Related Niches */}
                     {channel.niche && (
                       <button
                         onClick={() => fireSimilar({ type: 'related_niches', channelName: channel.channelName, niches: getRelatedNiches(channel.niche!) })}
-                        className="w-full flex items-start gap-2.5 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors text-left"
+                        className="w-full flex items-start gap-2.5 px-3 py-2 hover:bg-zinc-900 transition-colors text-left"
                       >
-                        <span className="text-base mt-0.5">🔗</span>
+                        <span className="text-xs">🔗</span>
                         <div className="min-w-0">
-                          <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">Related Niches</p>
-                          <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{describeRelated(channel.niche!)}</p>
+                          <p className="text-xs font-semibold text-zinc-200">Related Niches</p>
+                          <p className="text-[10px] text-zinc-500 truncate">{describeRelated(channel.niche!)}</p>
                         </div>
                       </button>
                     )}
 
-                    {/* Similar Titles */}
                     {titleKeyword && (
                       <button
                         onClick={() => fireSimilar({ type: 'title', channelName: channel.channelName, keyword: titleKeyword })}
-                        className="w-full flex items-start gap-2.5 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors text-left"
+                        className="w-full flex items-start gap-2.5 px-3 py-2 hover:bg-zinc-900 transition-colors text-left"
                       >
-                        <span className="text-base mt-0.5">📝</span>
+                        <span className="text-xs">📝</span>
                         <div className="min-w-0">
-                          <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">Similar Titles</p>
-                          <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">Keyword: &quot;{titleKeyword}&quot;</p>
+                          <p className="text-xs font-semibold text-zinc-200">Similar Titles</p>
+                          <p className="text-[10px] text-zinc-500 truncate">Keyword: &quot;{titleKeyword}&quot;</p>
                         </div>
                       </button>
                     )}
 
-                    {/* Same Age */}
                     {channel.daysSinceStart > 0 && (
                       <button
                         onClick={() => fireSimilar({ type: 'same_age', channelName: channel.channelName, ...getDaysRange() })}
-                        className="w-full flex items-start gap-2.5 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors text-left"
+                        className="w-full flex items-start gap-2.5 px-3 py-2 hover:bg-zinc-900 transition-colors text-left"
                       >
-                        <span className="text-base mt-0.5">📅</span>
+                        <span className="text-xs">📅</span>
                         <div className="min-w-0">
-                          <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">Started Around Same Time</p>
-                          <p className="text-[11px] text-gray-400 dark:text-gray-500">
-                            {Math.max(0, channel.daysSinceStart - Math.max(5, Math.floor(channel.daysSinceStart * 0.1)))}–
-                            {channel.daysSinceStart + Math.max(5, Math.floor(channel.daysSinceStart * 0.1))} days old (±10%)
-                          </p>
+                          <p className="text-xs font-semibold text-zinc-200">Same Channel Age</p>
+                          <p className="text-[10px] text-zinc-500">Started around same time</p>
                         </div>
                       </button>
                     )}
 
-                    {/* Similar Size */}
                     <button
                       onClick={() => fireSimilar({ type: 'similar_size', channelName: channel.channelName, ...getSubsRange() })}
-                      className="w-full flex items-start gap-2.5 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors text-left"
+                      className="w-full flex items-start gap-2.5 px-3 py-2 hover:bg-zinc-900 transition-colors text-left"
                     >
-                      <span className="text-base mt-0.5">👤</span>
+                      <span className="text-xs">👤</span>
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">Similar Subscriber Count</p>
-                        <p className="text-[11px] text-gray-400 dark:text-gray-500">
-                          {formatNumber(Math.max(100, Math.floor(channel.subscribers * 0.9)))}–
-                          {formatNumber(Math.ceil(channel.subscribers * 1.1))} subs (±10%)
-                        </p>
+                        <p className="text-xs font-semibold text-zinc-200">Similar Size</p>
+                        <p className="text-[10px] text-zinc-500">Same subscriber size range</p>
                       </div>
                     </button>
-
                   </div>
                 </div>
               )}
             </div>
           )}
 
-          <div className="flex items-center gap-1 text-gray-400 dark:text-gray-600">
-            {/* Save/Bookmark button */}
+          {/* Core action controls */}
+          <div className="flex items-center gap-1 border border-zinc-800 bg-zinc-900/50 rounded-lg p-0.5">
             <button
               onClick={toggleSave}
               title={saved ? 'Remove from saved' : 'Save channel'}
-              className={`p-1 rounded transition-colors hover:bg-gray-100 dark:hover:bg-[#2a2a2a] ${saved ? 'text-blue-500' : 'hover:text-gray-700 dark:hover:text-white'}`}
+              className="p-1.5 rounded-md hover:bg-zinc-800 transition-colors"
             >
-              <svg className="w-4 h-4" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 3H7a2 2 0 00-2 2v16l7-3 7 3V5a2 2 0 00-2-2z" />
+              <svg className={`w-3.5 h-3.5 transition-all duration-300 ${saved ? 'text-indigo-500 fill-indigo-500 stroke-indigo-500' : 'stroke-zinc-400 text-zinc-400 hover:text-white'}`} fill={saved ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 3H7a2 2 0 00-2 2v16l7-3 7 3V5a2 2 0 00-2-2z" />
               </svg>
             </button>
-            {/* Share/Copy button */}
+            
             <button
               onClick={handleShare}
               title="Copy channel URL"
-              className="hover:text-gray-700 dark:hover:text-white transition-colors p-1 rounded hover:bg-gray-100 dark:hover:bg-[#2a2a2a]"
+              className="p-1.5 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
               </svg>
             </button>
-            {/* Expand / Collapse arrow */}
+            
             <button
               onClick={() => setExpanded(e => !e)}
-              title={expanded ? 'Collapse details' : 'Expand details'}
-              className={`p-1 rounded transition-all hover:bg-gray-100 dark:hover:bg-[#2a2a2a] ${expanded ? 'text-blue-500' : 'hover:text-gray-700 dark:hover:text-white'}`}
+              title={expanded ? 'Collapse' : 'Expand'}
+              className="p-1.5 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
             >
-              <svg className={`w-4 h-4 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${expanded ? 'rotate-180 text-indigo-500' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
           </div>
-          <span className="text-[10px] text-gray-400 dark:text-gray-600" title="Last updated">
-            ↻ {timeAgo(channel.updatedAt)}
+        </div>
+      </div>
+
+      {/* ── NICHES CHIP SECTION (Light Gray pills inspired by modern aesthetics) ── */}
+      <div className="px-5 pb-4 flex flex-wrap gap-1.5">
+        {channel.niche && (
+          <span className="bg-zinc-100 text-zinc-800 dark:bg-zinc-800/80 dark:text-zinc-200 border border-zinc-250 dark:border-zinc-700/60 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 select-none">
+            🏷️ {channel.niche}
           </span>
-        </div>
+        )}
+        {subNiches.map(sn => (
+          <span key={sn} className="bg-zinc-100 text-zinc-800 dark:bg-zinc-850 dark:text-zinc-300 border border-zinc-250 dark:border-zinc-800/80 px-2.5 py-0.5 rounded-full text-[10px] font-medium tracking-wide select-none">
+            {sn}
+          </span>
+        ))}
       </div>
 
-      {/* ── Stats Grid ── */}
-      <div className="grid grid-cols-4 border-t border-gray-100 dark:border-[#2a2a2a] divide-x divide-gray-100 dark:divide-[#2a2a2a]">
-        <div className="p-3 text-center">
-          <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1 uppercase tracking-wide">Avg Views/Video</p>
-          <p className="text-gray-900 dark:text-white font-bold text-sm">{formatNumber(channel.avgViewsPerVideo)}</p>
-        </div>
-        <div className="p-3 text-center">
-          <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1 uppercase tracking-wide">Days Since Start</p>
-          <p className="text-gray-900 dark:text-white font-bold text-sm">{channel.daysSinceStart}</p>
-        </div>
-        <div className="p-3 text-center">
-          <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1 uppercase tracking-wide">Uploads</p>
-          <p className="text-gray-900 dark:text-white font-bold text-sm">{channel.totalVideos}</p>
-        </div>
-        <div className={`p-3 text-center ${scoreBg}`}>
-          <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1 uppercase tracking-wide">Outlier Score</p>
-          <p className={`font-bold text-sm ${scoreText}`}>{channel.outlierScore.toFixed(2)}x</p>
-        </div>
+      {/* ── KEY STATS ROW (9 Horizontal Cards Grid) ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 p-5 border-t border-zinc-900 bg-zinc-950/20">
+        {[
+          { label: 'Subscribers', value: formatNumber(channel.subscribers) },
+          { label: 'Revenue (30d Est)', value: revenueRange, valueClass: 'text-zinc-100 font-semibold' },
+          { label: 'RPM (Estimated)', value: rpmLabel, valueClass: 'font-mono' },
+          { label: 'Active Since', value: activeSince, valueClass: 'font-mono' },
+          { label: 'Total Videos', value: channel.totalVideos.toLocaleString() },
+          { label: 'Typical Views', value: formatNumber(channel.avgViewsPerVideo) },
+          { label: 'Language', value: channelLang },
+          { label: 'Content Type', value: isShortForm ? 'Shorts' : 'Long-Form' },
+          { label: 'Country', value: channelCountry },
+        ].map(stat => (
+          <div key={stat.label} className="bg-[#09090b] border border-zinc-850 rounded-xl p-3 flex flex-col justify-between hover:border-zinc-800 transition-colors">
+            <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest font-semibold">{stat.label}</span>
+            <p className={`text-xs font-bold text-zinc-200 mt-1.5 ${stat.valueClass || ''}`}>{stat.value}</p>
+          </div>
+        ))}
       </div>
 
-      {/* ── Most Popular Videos — 3 visible, arrow + scroll to see 4-10 ── */}
-      {channel.videos.length > 0 && (
-        <VideoScroller videos={channel.videos} isShortForm={isShortForm} />
+      {/* ── EXPANDED EXTRA INFO SECTION ── */}
+      {expanded && (
+        <div className="border-t border-zinc-900 p-5 bg-zinc-950/30">
+          <p className="text-[9px] text-zinc-500 font-mono font-bold uppercase tracking-widest mb-4">Metadata & Performance Insights</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* Outlier Score card */}
+            <div className={`border rounded-xl p-3 flex flex-col justify-between ${scoreBg} ${scoreBorder}`}>
+              <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest font-semibold">Outlier Growth Score</span>
+              <div className="mt-1.5 flex items-center justify-between">
+                <span className={`text-sm font-black ${scoreText}`}>{channel.outlierScore.toFixed(2)}x</span>
+                <span className={`text-[9px] uppercase font-mono tracking-wider font-semibold ${scoreText}`}>{scoreLabel}</span>
+              </div>
+            </div>
+
+            {/* Monetized status card (checkmark/cross icon badge) */}
+            <div className="bg-[#09090b] border border-zinc-850 rounded-xl p-3 flex flex-col justify-between">
+              <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest font-semibold">Monetization Status</span>
+              <p className={`text-xs font-bold mt-1.5 flex items-center gap-1 ${channel.isMonetized ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {channel.isMonetized ? (
+                  <>
+                    <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    <span>Monetized</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3.5 h-3.5 text-rose-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    <span>Not Monetized</span>
+                  </>
+                )}
+              </p>
+            </div>
+
+            {/* Channel Age Card (Creation Date instead of Spotted Date) */}
+            <div className="bg-[#09090b] border border-zinc-850 rounded-xl p-3 flex flex-col justify-between">
+              <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest font-semibold">Channel Age</span>
+              <p className="text-xs font-bold text-zinc-200 mt-1.5 font-mono">
+                {getRelativeAge(channel.daysSinceStart)} ({getEstimatedCreationDate(channel.daysSinceStart)})
+              </p>
+            </div>
+
+            {/* Country Card */}
+            <div className="bg-[#09090b] border border-zinc-850 rounded-xl p-3 flex flex-col justify-between">
+              <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest font-semibold">Channel Country</span>
+              <p className="text-xs font-bold text-zinc-200 mt-1.5">
+                {channelCountry}
+              </p>
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* ── Expanded Detail Section ── */}
-      {expanded && (
-        <div className="border-t border-gray-100 dark:border-[#2a2a2a] p-4 bg-gray-50/50 dark:bg-[#111]">
-          <p className="text-[10px] text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-widest mb-3">Channel Details</p>
-          <div className="grid grid-cols-2 gap-2 mb-2">
-            {[
-              { label: 'Total Views',     value: formatNumber(channel.totalViews) },
-              { label: 'Subscribers',     value: formatNumber(channel.subscribers) },
-              { label: 'Total Videos',    value: channel.totalVideos.toLocaleString() },
-              { label: 'Channel Age',     value: `${channel.daysSinceStart} days` },
-              { label: 'Avg Views/Video', value: formatNumber(channel.avgViewsPerVideo) },
-              { label: 'Outlier Score',   value: `${channel.outlierScore.toFixed(2)}x` },
-            ].map(item => (
-              <div key={item.label} className="bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-[#2a2a2a] rounded-lg p-2.5">
-                <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">{item.label}</p>
-                <p className="text-gray-900 dark:text-white font-bold text-sm">{item.value}</p>
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-[#2a2a2a] rounded-lg p-2.5">
-              <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Monetized</p>
-              <p className={`font-bold text-sm ${channel.isMonetized ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
-                {channel.isMonetized ? '✓ Yes' : '✕ No'}
-              </p>
-            </div>
-            <div className="bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-[#2a2a2a] rounded-lg p-2.5">
-              <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Type</p>
-              <p className="text-gray-900 dark:text-white font-bold text-sm capitalize">
-                {channel.channelType.replace('_', ' ')}
-              </p>
-            </div>
-            {channel.channelHandle && (
-              <div className="bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-[#2a2a2a] rounded-lg p-2.5 col-span-2">
-                <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Handle</p>
-                <a
-                  href={`https://youtube.com/${channel.channelHandle}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-500 hover:text-blue-600 dark:text-blue-400 font-medium text-sm"
-                >
-                  {channel.channelHandle}
-                </a>
-              </div>
-            )}
-          </div>
-        </div>
+      {/* ── Most Popular Videos Scroller ── */}
+      {channel.videos.length > 0 && (
+        <VideoScroller videos={channel.videos} isShortForm={isShortForm} />
       )}
     </div>
   )

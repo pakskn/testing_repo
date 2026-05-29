@@ -12,12 +12,12 @@ interface Stats {
 }
 
 const TYPE_LABELS: Record<string, string> = {
-  long:       '📹 Long Form',
-  short:      '▶️ Short Form',
-  long_form:  '📹 Long Form',
-  short_form: '▶️ Short Form',
-  real_time:  '🔴 Real Time',
-  terminated: '⛔ Terminated',
+  long:       'Long Form',
+  short:      'Short Form',
+  long_form:  'Long Form',
+  short_form: 'Short Form',
+  real_time:  'Real Time',
+  terminated: 'Terminated',
 }
 
 export default function AdminDashboard() {
@@ -61,7 +61,7 @@ export default function AdminDashboard() {
 
       if (json.success) {
         setMessage(`Success! Re-categorized ${json.stats.total} channels (${json.stats.long} Long, ${json.stats.short} Short).`)
-        loadStats() // Refresh stats dashboard
+        loadStats()
       } else {
         setError(json.error || 'Failed to re-categorize channels')
       }
@@ -73,116 +73,120 @@ export default function AdminDashboard() {
   }
 
   if (loading && !stats) return (
-    <div className="p-8 text-gray-500 flex items-center gap-2">
-      <div className="w-5 h-5 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
-      Loading...
+    <div className="p-8 text-zinc-400 flex items-center justify-center min-h-[60vh] gap-3">
+      <div className="w-5 h-5 border-2 border-zinc-700 border-t-indigo-500 rounded-full animate-spin" />
+      <span className="text-sm font-mono uppercase tracking-widest">Loading statistics...</span>
     </div>
   )
 
   const cards = [
-    { label: 'Total Channels', value: stats?.total ?? 0,    color: 'bg-blue-500',  icon: '📺' },
-    { label: 'Active',         value: stats?.active ?? 0,   color: 'bg-green-500', icon: '✅' },
-    { label: 'Inactive',       value: stats?.inactive ?? 0, color: 'bg-red-400',   icon: '⏸' },
-    { label: 'Total Videos',   value: stats?.videos ?? 0,   color: 'bg-purple-500',icon: '🎬' },
+    { label: 'Total Channels', value: stats?.total ?? 0,    color: 'text-indigo-400',  icon: '📊' },
+    { label: 'Active Channels', value: stats?.active ?? 0,   color: 'text-emerald-400', icon: '🟢' },
+    { label: 'Inactive Channels', value: stats?.inactive ?? 0, color: 'text-zinc-500',    icon: '⚪' },
+    { label: 'Total Videos',   value: stats?.videos ?? 0,   color: 'text-amber-400',   icon: '🎥' },
   ]
 
   return (
-    <div className="p-8">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="p-8 max-w-[1400px] mx-auto min-h-screen">
+      {/* Header */}
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-          <p className="text-gray-500 text-sm mt-1">Overview of your Niche Finder database</p>
+          <h1 className="text-xl font-bold text-zinc-100 tracking-tight">System Overview</h1>
+          <p className="text-zinc-400 text-xs mt-1">Real-time counts, index distributions, and database states.</p>
         </div>
         <Link
           href="/admin/channels/new"
-          className="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
+          className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-xs font-semibold shadow-sm transition-colors self-start sm:self-center"
         >
           ➕ Add Channel
         </Link>
       </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      {/* Stat Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {cards.map(c => (
-          <div key={c.label} className="bg-white dark:bg-[#1a1a1a] rounded-xl p-5 shadow-sm border border-gray-100 dark:border-[#2a2a2a]">
+          <div key={c.label} className="bg-[#121214] border border-zinc-800 rounded-xl p-5 hover:border-zinc-700 transition-colors">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-2xl">{c.icon}</span>
-              <span className={`${c.color} text-white text-xs font-bold px-2 py-1 rounded-full`}>
-                {c.value.toLocaleString()}
-              </span>
+              <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">{c.label}</span>
+              <span className="text-sm">{c.icon}</span>
             </div>
-            <p className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide">{c.label}</p>
+            <p className="text-3xl font-extrabold text-white tracking-tight">{c.value.toLocaleString()}</p>
           </div>
         ))}
       </div>
 
-      {/* By type breakdown */}
-      <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-6 shadow-sm border border-gray-100 dark:border-[#2a2a2a] mb-6">
-        <h2 className="font-semibold text-gray-800 dark:text-white mb-4">Channels by Type</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* By Type Breakdown */}
+      <div className="bg-[#121214] border border-zinc-800 rounded-xl p-6 mb-8">
+        <h2 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">Distribution by Channel Type</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {(['long','short','real_time','terminated'] as const).map(type => {
             const found = stats?.byType.find(
               b => b.channelType === type || 
               (type === 'long' && b.channelType === 'long_form') || 
               (type === 'short' && b.channelType === 'short_form')
             )
+            const count = found?._count._all ?? 0
+            const percentage = stats?.total ? ((count / stats.total) * 100).toFixed(1) : '0'
+
             return (
-              <div key={type} className="bg-gray-50 dark:bg-[#111] rounded-lg p-4 text-center">
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{found?._count._all ?? 0}</p>
-                <p className="text-xs text-gray-500 mt-1">{TYPE_LABELS[type]}</p>
+              <div key={type} className="bg-[#09090b] border border-zinc-800/80 rounded-xl p-4 flex flex-col justify-between">
+                <div>
+                  <p className="text-2xl font-black text-white tracking-tight">{count.toLocaleString()}</p>
+                  <p className="text-[11px] font-medium text-zinc-400 mt-0.5">{TYPE_LABELS[type]}</p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-zinc-900 flex justify-between items-center text-[10px] font-mono text-zinc-500">
+                  <span>RATIO</span>
+                  <span>{percentage}%</span>
+                </div>
               </div>
             )
           })}
         </div>
       </div>
 
-      {/* Quick links & actions */}
-      <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-6 shadow-sm border border-gray-100 dark:border-[#2a2a2a]">
-        <h2 className="font-semibold text-gray-800 dark:text-white mb-4">Quick Actions</h2>
+      {/* Quick Links & Actions */}
+      <div className="bg-[#121214] border border-zinc-800 rounded-xl p-6">
+        <h2 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">Database & CMS Controls</h2>
         
         {message && (
-          <div className="mb-4 p-3 bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400 rounded-xl text-sm font-medium border border-green-200 dark:border-green-900">
-            ✅ {message}
+          <div className="mb-4 p-3 bg-indigo-950/20 text-indigo-400 border border-indigo-900/50 rounded-lg text-xs font-mono">
+            {message}
           </div>
         )}
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 rounded-xl text-sm font-medium border border-red-200 dark:border-red-900">
-            ❌ {error}
+          <div className="mb-4 p-3 bg-red-950/20 text-red-400 border border-red-900/50 rounded-lg text-xs font-mono">
+            {error}
           </div>
         )}
 
-        <div className="flex flex-wrap gap-3">
-          <Link href="/admin/channels" className="px-4 py-2 bg-gray-100 dark:bg-[#252525] text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-[#2a2a2a] transition-colors flex items-center gap-1.5">
+        <div className="flex flex-wrap gap-2">
+          <Link href="/admin/channels" className="px-4 py-2 bg-zinc-900 border border-zinc-800 text-zinc-300 rounded-lg text-xs font-semibold hover:bg-zinc-800 hover:text-white transition-colors">
             📋 Manage Channels
           </Link>
-          <Link href="/admin/channels/new" className="px-4 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-sm hover:bg-blue-100 transition-colors flex items-center gap-1.5">
+          <Link href="/admin/channels/new" className="px-4 py-2 bg-zinc-900 border border-zinc-800 text-zinc-300 rounded-lg text-xs font-semibold hover:bg-zinc-800 hover:text-white transition-colors">
             ➕ Add New Channel
           </Link>
           
           <button 
             onClick={handleRecategorize}
             disabled={recategorizing}
-            className={`px-4 py-2 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
-              recategorizing 
-                ? 'bg-blue-400 dark:bg-blue-800 cursor-not-allowed' 
-                : 'bg-blue-600 hover:bg-blue-700'
+            className={`px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+              recategorizing ? 'opacity-50 cursor-not-allowed' : ''
             }`}
           >
             {recategorizing ? (
               <>
-                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Categorizing...
+                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Running Scraper Analysis...</span>
               </>
             ) : (
-              <>
-                🔄 Re-categorize All Channels
-              </>
+              <span>🔄 Re-categorize All Channels</span>
             )}
           </button>
           
-          <a href="/" className="px-4 py-2 bg-gray-100 dark:bg-[#252525] text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-[#2a2a2a] transition-colors flex items-center gap-1.5">
-            🔙 View Live Site
+          <a href="/" className="px-4 py-2 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded-lg text-xs font-semibold hover:bg-zinc-800 hover:text-white transition-colors">
+            🔙 View Live App
           </a>
         </div>
       </div>

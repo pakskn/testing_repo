@@ -20,13 +20,28 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
 // PUT — update channel
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const existing = await prisma.channel.findUnique({ where: { id: params.id } })
+    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
     const body = await req.json()
     const data: any = {}
 
     if (body.channelName      !== undefined) data.channelName      = body.channelName
     if (body.channelHandle    !== undefined) data.channelHandle    = body.channelHandle || null
     if (body.thumbnailUrl     !== undefined) data.thumbnailUrl     = body.thumbnailUrl || null
-    if (body.channelType      !== undefined) data.channelType      = body.channelType
+    
+    if (body.channelType !== undefined) {
+      const incomingType = body.channelType
+      const normalizedType = incomingType === 'long_form' ? 'long' : incomingType === 'short_form' ? 'short' : incomingType
+      data.channelType = normalizedType
+
+      // If the channel type is modified (e.g. transferred), purge its existing videos
+      if (normalizedType !== existing.channelType) {
+        await prisma.video.deleteMany({
+          where: { channelId: existing.channelId }
+        })
+      }
+    }
     if (body.niche            !== undefined) data.niche            = body.niche || null
     if (body.subscribers      !== undefined) data.subscribers      = Number(body.subscribers)
     if (body.totalVideos      !== undefined) data.totalVideos      = Number(body.totalVideos)

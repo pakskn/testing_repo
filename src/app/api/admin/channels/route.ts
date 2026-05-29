@@ -5,7 +5,8 @@ import { prisma } from '@/lib/prisma'
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const search = searchParams.get('search') || ''
-  const type   = searchParams.get('type')   || ''
+  const typeParam = searchParams.get('type') || ''
+  const type = typeParam === 'long_form' ? 'long' : typeParam === 'short_form' ? 'short' : typeParam
   const page   = Math.max(1, parseInt(searchParams.get('page') || '1'))
   const limit  = 20
   const skip   = (page - 1) * limit
@@ -51,6 +52,9 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
+    const incomingType = body.channelType || 'long'
+    const normalizedType = incomingType === 'long_form' ? 'long' : incomingType === 'short_form' ? 'short' : incomingType
+
     const channel = await prisma.channel.create({
       data: {
         channelId:        body.channelId,
@@ -60,7 +64,7 @@ export async function POST(req: NextRequest) {
         subscribers:      Number(body.subscribers) || 0,
         totalVideos:      Number(body.totalVideos) || 0,
         totalViews:       BigInt(body.totalViews || 0),
-        channelType:      body.channelType || 'long_form',
+        channelType:      normalizedType,
         niche:            body.niche || null,
         daysSinceStart:   Number(body.daysSinceStart) || 0,
         avgViewsPerVideo: parseFloat(body.avgViewsPerVideo) || 0,

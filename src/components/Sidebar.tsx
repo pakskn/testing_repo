@@ -10,6 +10,7 @@ import PremiumModal from '@/components/PremiumModal'
 const CHANNEL_ITEMS = [
   { href: '/channels/long-form',   label: 'Long Form Channels',  icon: '📹' },
   { href: '/channels/short-form',  label: 'Short Form Channels', icon: '▶️'  },
+  { href: '/channels/terminated',  label: 'Terminated Channels', icon: '⛔'  },
   { href: '/channels/kids',        label: 'Kids',                icon: '🧒' },
 ]
 
@@ -29,13 +30,13 @@ export default function Sidebar({ onClose, isAdmin = false }: SidebarProps) {
       <aside className="w-60 h-full bg-white dark:bg-[#111111] border-r border-gray-200 dark:border-[#1e1e1e] flex flex-col">
         {/* Logo */}
         <div className="px-4 py-4 border-b border-gray-200 dark:border-[#1e1e1e] flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <Link href="/channels/long-form" className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer">
             <span className="text-2xl">🎯</span>
             <div>
               <h1 className="text-gray-900 dark:text-white font-bold text-base leading-tight">Niche Finder</h1>
               <p className="text-gray-400 dark:text-gray-600 text-xs">YouTube Research Tool</p>
             </div>
-          </div>
+          </Link>
           {onClose && (
             <button onClick={onClose} title="Collapse"
               className="text-gray-400 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-[#1a1a1a] transition-colors">
@@ -61,7 +62,7 @@ export default function Sidebar({ onClose, isAdmin = false }: SidebarProps) {
               </svg>
             </button>
 
-            <div className={`overflow-hidden transition-all duration-200 ${channelsOpen ? 'max-h-64 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+            <div className={`overflow-hidden transition-all duration-200 ${channelsOpen ? 'max-h-80 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
               <div className="space-y-0.5">
                 {CHANNEL_ITEMS.map(item => {
                   const active = pathname === item.href
@@ -102,7 +103,6 @@ export default function Sidebar({ onClose, isAdmin = false }: SidebarProps) {
                   {[
                     { href: '/channels/saved?folder=long_form',  label: 'Long Form Saved',  icon: '📁' },
                     { href: '/channels/saved?folder=short_form', label: 'Shorts Saved',     icon: '📁' },
-                    { href: '/channels/saved?folder=terminated', label: 'Terminated Saved', icon: '📁' },
                   ].map(item => {
                     const active = pathname === '/channels/saved' && (
                       typeof window !== 'undefined'

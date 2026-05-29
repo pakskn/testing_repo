@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════════════════
 
 const API_HOST = "https://waqasalee.com"; 
+const EXTENSION_SECRET_KEY = "niche_finder_secret_ext_key_2026_xyz"; 
 
 // 1. Inject CSS Styles directly into the page (solid dark layouts & dashboard cards)
 function injectStyles() {
@@ -2905,7 +2906,8 @@ async function checkPage() {
       fetch(`${API_HOST}/api/discovered/report`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "X-Extension-Key": EXTENSION_SECRET_KEY
         },
         body: JSON.stringify({
           channelId: targetChannel.channelId,

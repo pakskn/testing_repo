@@ -5,6 +5,7 @@ export interface Video {
   views: number
   duration: string | null
   publishedAt: string | null
+  language?: string | null
 }
 
 export interface Channel {
@@ -21,6 +22,13 @@ export interface Channel {
   avgViewsPerVideo: number
   outlierScore: number
   isMonetized: boolean
+  isFaceless?: boolean
+  isAi?: boolean
+  isKids?: boolean
+  isNews?: boolean
+  isEntertainment?: boolean
+  isNano?: boolean
+  monthlyViews?: number | bigint
   updatedAt: string
   videos: Video[]
 }
