@@ -83,6 +83,7 @@ model Channel {
   totalViews        BigInt   @default(0)
   channelType       String
   niche             String?
+  country           String?
   daysSinceStart    Int      @default(0)
   avgViewsPerVideo  Float    @default(0)
   outlierScore      Float    @default(0)
@@ -99,6 +100,8 @@ model Channel {
   lastCategorizedAt DateTime?
   avgVideoLength    Int      @default(0)
   monthlyViews      BigInt   @default(0)
+  longVideosCount   Int      @default(0)
+  shortsVideosCount Int      @default(0)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   videos            Video[]

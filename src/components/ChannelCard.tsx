@@ -439,10 +439,16 @@ export default function ChannelCard({ channel, onFindSimilar }: {
   }
 
   // ── NexLev + vidIQ Estimation Metrics ──
+  const shortsRatio = channel.shortsRatioLast30d !== undefined ? channel.shortsRatioLast30d : (isShortForm ? 100.0 : 0.0)
   const monthlyViewsEst = Number(channel.monthlyViews) || (channel.avgViewsPerVideo * (isShortForm ? 15 : 4))
   
-  const minRPM = isShortForm ? 0.05 : 2.00
-  const maxRPM = isShortForm ? 0.15 : 6.00
+  // Split monthly views between long-form and shorts
+  const shortsViews = monthlyViewsEst * (shortsRatio / 100.0)
+  const longViews = monthlyViewsEst * ((100.0 - shortsRatio) / 100.0)
+  
+  // Calculate split earnings
+  const minEarnings = (longViews / 1000) * 2.00 + (shortsViews / 1000) * 0.05
+  const maxEarnings = (longViews / 1000) * 6.00 + (shortsViews / 1000) * 0.15
 
   const formatRevenue = (val: number): string => {
     if (val <= 0) return '$0'
@@ -450,8 +456,7 @@ export default function ChannelCard({ channel, onFindSimilar }: {
     return `$${val.toFixed(0)}`
   }
 
-  const revenueRange = `${formatRevenue((monthlyViewsEst / 1000) * minRPM)} - ${formatRevenue((monthlyViewsEst / 1000) * maxRPM)}`
-  const rpmLabel = `$${minRPM.toFixed(2)} - $${maxRPM.toFixed(2)}`
+  const revenueRange = `${formatRevenue(minEarnings)} - ${formatRevenue(maxEarnings)}`
 
   // Oldest Upload Date Check
   const oldestVideoUpload = getFirstUploadDate(channel.videos, channel.daysSinceStart)
@@ -497,16 +502,32 @@ export default function ChannelCard({ channel, onFindSimilar }: {
     ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-250 dark:border-emerald-900/40'
     : (monetizationState === 'demonetized' ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-250 dark:border-rose-900/40' : 'bg-amber-50 dark:bg-amber-950/20 border-amber-250 dark:border-amber-900/40')
 
-  // Dynamic calculation for "Has Shorts?"
-  const hasShorts = (channel.shortsRatioLast30d || 0) > 0 || channel.videos.some(v => {
-    if (!v.duration) return false
-    const parts = v.duration.split(':').map(Number)
-    let sec = 0
-    if (parts.length === 3) sec = parts[0] * 3600 + parts[1] * 60 + parts[2]
-    else if (parts.length === 2) sec = parts[0] * 60 + parts[1]
-    else sec = parts[0] || 0
-    return sec <= 60
-  }) ? 'Yes' : 'No'
+  // Dynamic calculation for Has Shorts / Has Long labels and counts
+  const hasShortsLabel = isShortForm ? "Has Long?" : "Has Shorts?";
+  const shortsCountVal = channel.shortsVideosCount || 0;
+  const longCountVal = channel.longVideosCount || 0;
+  const hasShortsVal = isShortForm
+    ? (longCountVal > 0 ? `Yes (${longCountVal})` : 'No')
+    : (shortsCountVal > 0 ? `Yes (${shortsCountVal})` : 'No');
+
+  // Dynamic last 30d uploads from scroller
+  const last30dVideos = channel.videos.filter(v => {
+    if (!v.publishedAt) return false;
+    const ageInDays = (Date.now() - new Date(v.publishedAt).getTime()) / 86400000;
+    return ageInDays <= 30;
+  });
+  
+  const last30dShortsCount = last30dVideos.filter(v => {
+    if (!v.duration) return false;
+    const parts = v.duration.split(':').map(Number);
+    let sec = 0;
+    if (parts.length === 3) sec = parts[0] * 3600 + parts[1] * 60 + parts[2];
+    else if (parts.length === 2) sec = parts[0] * 60 + parts[1];
+    else sec = parts[0] || 0;
+    return sec <= 60;
+  }).length;
+  
+  const last30dLongCount = last30dVideos.length - last30dShortsCount;
 
   return (
     <div className="relative bg-white dark:bg-[#09090b] border border-gray-100 dark:border-zinc-800 rounded-xl overflow-hidden hover:border-gray-200 dark:hover:border-zinc-700 transition-colors shadow-sm">
@@ -762,10 +783,10 @@ export default function ChannelCard({ channel, onFindSimilar }: {
               <p className="text-xs font-bold text-gray-800 dark:text-zinc-200 mt-2">{isShortForm ? 'Shorts' : 'Long-Form'}</p>
             </div>
 
-            {/* 6. Has Shorts? Card */}
+            {/* 6. Has Shorts? / Has Long? Card */}
             <div className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3.5 flex flex-col justify-between shadow-sm hover:border-gray-200 dark:hover:border-zinc-800 transition-colors">
-              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Has Shorts?</span>
-              <p className="text-xs font-bold text-gray-800 dark:text-zinc-200 mt-2">{hasShorts}</p>
+              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">{hasShortsLabel}</span>
+              <p className="text-xs font-bold text-gray-800 dark:text-zinc-200 mt-2">{hasShortsVal}</p>
             </div>
 
             {/* 7. Average Views Per Video Card */}
@@ -799,6 +820,30 @@ export default function ChannelCard({ channel, onFindSimilar }: {
             <div className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3.5 flex flex-col justify-between shadow-sm hover:border-gray-200 dark:hover:border-zinc-800 transition-colors col-span-2 md:col-span-1">
               <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Last 30d Earnings</span>
               <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-2 font-mono">{revenueRange}</p>
+            </div>
+
+            {/* 12. Long Videos Count Card */}
+            <div className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3.5 flex flex-col justify-between shadow-sm hover:border-gray-200 dark:hover:border-zinc-800 transition-colors">
+              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Long Videos Count</span>
+              <p className="text-xs font-bold text-gray-800 dark:text-zinc-200 mt-2 font-mono">{longCountVal.toLocaleString()}</p>
+            </div>
+
+            {/* 13. Shorts Videos Count Card */}
+            <div className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3.5 flex flex-col justify-between shadow-sm hover:border-gray-200 dark:hover:border-zinc-800 transition-colors">
+              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Shorts Videos Count</span>
+              <p className="text-xs font-bold text-gray-800 dark:text-zinc-200 mt-2 font-mono">{shortsCountVal.toLocaleString()}</p>
+            </div>
+
+            {/* 14. Last 30d Long Uploads Card */}
+            <div className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3.5 flex flex-col justify-between shadow-sm hover:border-gray-200 dark:hover:border-zinc-800 transition-colors">
+              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Last 30d Long Uploads</span>
+              <p className="text-xs font-bold text-gray-800 dark:text-zinc-200 mt-2 font-mono">{last30dLongCount}</p>
+            </div>
+
+            {/* 15. Last 30d Shorts Uploads Card */}
+            <div className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3.5 flex flex-col justify-between shadow-sm hover:border-gray-200 dark:hover:border-zinc-800 transition-colors">
+              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Last 30d Shorts Uploads</span>
+              <p className="text-xs font-bold text-gray-800 dark:text-zinc-200 mt-2 font-mono">{last30dShortsCount}</p>
             </div>
           </div>
         </div>

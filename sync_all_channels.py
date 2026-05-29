@@ -73,6 +73,35 @@ def main():
             now = datetime.datetime.now(datetime.timezone.utc)
             days_since = (now - joined_date).days
             
+            # Fetch existing metrics to preserve them and calculate new fields
+            if is_postgres:
+                cur.execute('SELECT "shortsRatioLast30d", "avgViewsPerVideo", "monthlyViews", "country" FROM "Channel" WHERE "channelId" = %s', (cid,))
+            else:
+                cur.execute('SELECT shortsRatioLast30d, avgViewsPerVideo, monthlyViews, country FROM Channel WHERE channelId = ?', (cid,))
+            row = cur.fetchone()
+            
+            existing_ratio = 50.0
+            avg_views = 0.0
+            monthly_views = 0
+            existing_country = None
+            if row:
+                existing_ratio = row[0] if row[0] is not None and row[0] > 0 else 50.0
+                avg_views = row[1] if row[1] is not None else 0.0
+                monthly_views = int(row[2]) if row[2] is not None else 0
+                existing_country = row[3]
+                
+            country = snippet.get("country") or existing_country or "N/A"
+            
+            # Calculate video counts
+            shorts_count = int(round(vids * (existing_ratio / 100.0)))
+            long_count = vids - shorts_count
+            
+            # Calculate updated monthlyViews
+            monthly_views_est = int(round(avg_views * (vids / max(1, days_since / 30.0))))
+            updated_monthly_views = max(monthly_views, monthly_views_est)
+            if updated_monthly_views <= 0:
+                updated_monthly_views = int(round(views / max(1, days_since / 30.0)))
+            
             # Update database
             if is_postgres:
                 cur.execute("""
@@ -82,9 +111,13 @@ def main():
                         "totalVideos" = %s,
                         "totalViews" = %s,
                         "daysSinceStart" = %s,
+                        "country" = %s,
+                        "longVideosCount" = %s,
+                        "shortsVideosCount" = %s,
+                        "monthlyViews" = %s,
                         "updatedAt" = NOW()
                     WHERE "channelId" = %s
-                """, (handle, subs, vids, views, days_since, cid))
+                """, (handle, subs, vids, views, days_since, country, long_count, shorts_count, updated_monthly_views, cid))
             else:
                 cur.execute("""
                     UPDATE Channel
@@ -93,9 +126,13 @@ def main():
                         totalVideos = ?,
                         totalViews = ?,
                         daysSinceStart = ?,
+                        country = ?,
+                        longVideosCount = ?,
+                        shortsVideosCount = ?,
+                        monthlyViews = ?,
                         updatedAt = datetime('now')
                     WHERE channelId = ?
-                """, (handle, subs, vids, views, days_since, cid))
+                """, (handle, subs, vids, views, days_since, country, long_count, shorts_count, updated_monthly_views, cid))
                 
             total_synced += 1
             

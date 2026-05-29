@@ -67,6 +67,7 @@ def get_channel_details(channel_id, api_key):
                 "totalVideos": int(stats.get("videoCount", 0)),
                 "totalViews": int(stats.get("viewCount", 0)),
                 "publishedAt": snippet["publishedAt"],
+                "country": snippet.get("country"),
                 "uploadsPlaylistId": uploads_playlist_id
             }
     except Exception as e:
@@ -93,7 +94,8 @@ def sync_channel(channel_id, custom_db_url=None):
     print(f" - Handle: {ch_details['channelHandle']}")
     print(f" - Joined Date: {joined_date.strftime('%Y-%m-%d')} ({days_since} days ago)")
     if oldest_vid:
-        print(f" - Oldest Video: {oldest_vid['title']} ({oldest_vid['publishedAt']})")
+        safe_title = oldest_vid['title'].encode('ascii', 'ignore').decode()
+        print(f" - Oldest Video: {safe_title} ({oldest_vid['publishedAt']})")
         
     # Update in Database
     conn = None
@@ -107,6 +109,35 @@ def sync_channel(channel_id, custom_db_url=None):
         
     cur = conn.cursor()
     
+    # Fetch existing metrics to preserve them and calculate new fields
+    if is_postgres:
+        cur.execute('SELECT "shortsRatioLast30d", "avgViewsPerVideo", "monthlyViews", "country" FROM "Channel" WHERE "channelId" = %s', (channel_id,))
+    else:
+        cur.execute('SELECT shortsRatioLast30d, avgViewsPerVideo, monthlyViews, country FROM Channel WHERE channelId = ?', (channel_id,))
+    row = cur.fetchone()
+    
+    existing_ratio = 50.0
+    avg_views = 0.0
+    monthly_views = 0
+    existing_country = None
+    if row:
+        existing_ratio = row[0] if row[0] is not None and row[0] > 0 else 50.0
+        avg_views = row[1] if row[1] is not None else 0.0
+        monthly_views = int(row[2]) if row[2] is not None else 0
+        existing_country = row[3]
+        
+    country = ch_details["country"] or existing_country or "N/A"
+    
+    # Calculate video counts
+    shorts_count = int(round(ch_details["totalVideos"] * (existing_ratio / 100.0)))
+    long_count = ch_details["totalVideos"] - shorts_count
+    
+    # Calculate updated monthlyViews
+    monthly_views_est = int(round(avg_views * (ch_details["totalVideos"] / max(1, days_since / 30.0))))
+    updated_monthly_views = max(monthly_views, monthly_views_est)
+    if updated_monthly_views <= 0:
+        updated_monthly_views = int(round(ch_details["totalViews"] / max(1, days_since / 30.0)))
+        
     # 1. Update Channel table
     if is_postgres:
         cur.execute("""
@@ -116,10 +147,13 @@ def sync_channel(channel_id, custom_db_url=None):
                 "totalVideos" = %s,
                 "totalViews" = %s,
                 "daysSinceStart" = %s,
-                "shortsRatioLast30d" = 50.0,
+                "country" = %s,
+                "longVideosCount" = %s,
+                "shortsVideosCount" = %s,
+                "monthlyViews" = %s,
                 "updatedAt" = NOW()
             WHERE "channelId" = %s
-        """, (ch_details["channelHandle"], ch_details["subscribers"], ch_details["totalVideos"], ch_details["totalViews"], days_since, channel_id))
+        """, (ch_details["channelHandle"], ch_details["subscribers"], ch_details["totalVideos"], ch_details["totalViews"], days_since, country, long_count, shorts_count, updated_monthly_views, channel_id))
     else:
         cur.execute("""
             UPDATE Channel
@@ -128,10 +162,13 @@ def sync_channel(channel_id, custom_db_url=None):
                 totalVideos = ?,
                 totalViews = ?,
                 daysSinceStart = ?,
-                shortsRatioLast30d = 50.0,
+                country = ?,
+                longVideosCount = ?,
+                shortsVideosCount = ?,
+                monthlyViews = ?,
                 updatedAt = datetime('now')
             WHERE channelId = ?
-        """, (ch_details["channelHandle"], ch_details["subscribers"], ch_details["totalVideos"], ch_details["totalViews"], days_since, channel_id))
+        """, (ch_details["channelHandle"], ch_details["subscribers"], ch_details["totalVideos"], ch_details["totalViews"], days_since, country, long_count, shorts_count, updated_monthly_views, channel_id))
         
     # 2. Insert oldest video if it exists so 1st upload date is correctly computed
     if oldest_vid:
@@ -161,5 +198,5 @@ def sync_channel(channel_id, custom_db_url=None):
     return True
 
 if __name__ == '__main__':
-    channel_to_sync = "UCrddbJRcxb7nq-jHFeol-FA" # Goated50
+    channel_to_sync = "UCC8EelolZsxysEZh4nuzk_Q" # Vintage Memories 66
     sync_channel(channel_to_sync)

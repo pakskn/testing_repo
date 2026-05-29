@@ -31,6 +31,9 @@ export interface Channel {
   monthlyViews?: number | bigint
   shortsRatioLast30d?: number
   avgVideoLength?: number
+  country?: string | null
+  longVideosCount?: number
+  shortsVideosCount?: number
   updatedAt: string
   videos: Video[]
 }

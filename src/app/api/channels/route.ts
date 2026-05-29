@@ -280,6 +280,9 @@ export async function GET(request: NextRequest) {
           avgVideoLength: true,
           shortsRatioLast30d: true,
           monthlyViews: true,
+          country: true,
+          longVideosCount: true,
+          shortsVideosCount: true,
           createdAt: true,
           updatedAt: true,
           videos: {
