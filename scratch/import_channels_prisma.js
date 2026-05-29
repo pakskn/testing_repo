@@ -5,9 +5,16 @@ const path = require('path');
 const prisma = new PrismaClient();
 
 async function main() {
-  const jsonPath = path.join(__dirname, '..', 'upcoming_long_channels.json');
+  let jsonPath = path.join(__dirname, '..', 'upcoming_long_channels.json');
   if (!fs.existsSync(jsonPath)) {
-    console.error(`Error: File '${jsonPath}' does not exist!`);
+    jsonPath = path.join(__dirname, 'upcoming_long_channels.json');
+  }
+  if (!fs.existsSync(jsonPath)) {
+    jsonPath = path.join(process.cwd(), 'upcoming_long_channels.json');
+  }
+  
+  if (!fs.existsSync(jsonPath)) {
+    console.error(`Error: File 'upcoming_long_channels.json' could not be found at any expected path!`);
     process.exit(1);
   }
 
