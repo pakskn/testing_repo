@@ -29,6 +29,8 @@ export interface Channel {
   isEntertainment?: boolean
   isNano?: boolean
   monthlyViews?: number | bigint
+  shortsRatioLast30d?: number
+  avgVideoLength?: number
   updatedAt: string
   videos: Video[]
 }

@@ -11,13 +11,19 @@ def main():
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
-        ssh.connect(hostname='72.62.132.159', username='root', password='MyN3wP@s-123')
+        key = paramiko.Ed25519Key(filename=r'C:\Users\HP\.ssh\id_vps_waqas')
+        ssh.connect(hostname='72.62.132.159', username='waqas', pkey=key)
+        
         # Read script if arg starts with @
         if command.startswith('@'):
             with open(command[1:], 'r') as f:
                 script = f.read()
-            stdin, stdout, stderr = ssh.exec_command('python3 -c "' + script.replace('"', '\\"') + '"')
+            # Run with sudo if executing python script that might need docker permissions
+            stdin, stdout, stderr = ssh.exec_command('sudo python3 -c "' + script.replace('"', '\\"') + '"')
         else:
+            # Automatic prepending of sudo if it's a docker command
+            if "docker" in command and not command.startswith("sudo"):
+                command = "sudo " + command
             stdin, stdout, stderr = ssh.exec_command(command)
         
         out = stdout.read()

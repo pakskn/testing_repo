@@ -288,6 +288,21 @@ function useToast() {
   return { msg, show }
 }
 
+function getActualCreationDate(daysSinceStart: number): string {
+  if (!daysSinceStart) return 'N/A'
+  const d = new Date()
+  d.setDate(d.getDate() - daysSinceStart)
+  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+function formatAvgVideoLength(seconds: number): string {
+  if (!seconds) return 'N/A'
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  if (mins > 0) return `${mins}m ${secs}s`
+  return `${secs}s`
+}
+
 export default function ChannelCard({ channel, onFindSimilar }: {
   channel: Channel
   onFindSimilar?: (req: SimilarRequest) => void
@@ -406,14 +421,58 @@ export default function ChannelCard({ channel, onFindSimilar }: {
 
   // Oldest Upload Date Check
   const oldestVideoUpload = getFirstUploadDate(channel.videos)
-  const activeSince = oldestVideoUpload !== 'N/A' ? oldestVideoUpload : getEstimatedCreationDate(channel.daysSinceStart)
   
   // Dynamic extraction of video language
   const channelLang = channel.videos.find(v => v.language)?.language || 'English'
   const subNiches = channel.niche ? getRelatedNiches(channel.niche).slice(0, 3) : []
 
+  // Clean, Deduplicated niches tags (main category + sub-niches case-insensitive deduplication)
+  const uniqueNiches = new Set<string>()
+  if (channel.niche) {
+    uniqueNiches.add(channel.niche.trim())
+  }
+  subNiches.forEach(sn => {
+    const exists = Array.from(uniqueNiches).some(un => un.toLowerCase() === sn.trim().toLowerCase())
+    if (!exists) {
+      uniqueNiches.add(sn.trim())
+    }
+  })
+  const nichesToRender = Array.from(uniqueNiches)
+
   // Dynamic Country Fallback
   const channelCountry = (channel as any).country || 'N/A'
+
+  // Monetization status badge next to Avatar
+  const monetizationState = channel.isMonetized
+    ? 'monetized'
+    : (channel.subscribers < 1000 ? 'demonetized' : 'checking')
+
+  const monetBadgeColor = monetizationState === 'monetized'
+    ? 'bg-emerald-500 ring-emerald-400/30'
+    : (monetizationState === 'demonetized' ? 'bg-rose-500 ring-rose-400/30' : 'bg-amber-500 ring-amber-400/30')
+
+  const monetTooltip = monetizationState === 'monetized'
+    ? 'Monetized'
+    : (monetizationState === 'demonetized' ? 'Demonetized' : 'Unknown / Checking')
+
+  const monetTextColor = monetizationState === 'monetized'
+    ? 'text-emerald-600 dark:text-emerald-400'
+    : (monetizationState === 'demonetized' ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400')
+
+  const monetBgColor = monetizationState === 'monetized'
+    ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-250 dark:border-emerald-900/40'
+    : (monetizationState === 'demonetized' ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-250 dark:border-rose-900/40' : 'bg-amber-50 dark:bg-amber-950/20 border-amber-250 dark:border-amber-900/40')
+
+  // Dynamic calculation for "Has Shorts?"
+  const hasShorts = (channel.shortsRatioLast30d || 0) > 0 || channel.videos.some(v => {
+    if (!v.duration) return false
+    const parts = v.duration.split(':').map(Number)
+    let sec = 0
+    if (parts.length === 3) sec = parts[0] * 3600 + parts[1] * 60 + parts[2]
+    else if (parts.length === 2) sec = parts[0] * 60 + parts[1]
+    else sec = parts[0] || 0
+    return sec <= 60
+  }) ? 'Yes' : 'No'
 
   return (
     <div className="relative bg-white dark:bg-[#09090b] border border-gray-100 dark:border-zinc-800 rounded-xl overflow-hidden hover:border-gray-200 dark:hover:border-zinc-700 transition-colors shadow-sm">
@@ -428,11 +487,23 @@ export default function ChannelCard({ channel, onFindSimilar }: {
       {/* ── HEADER BLOCK ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5">
         <div className="flex items-center gap-3.5 min-w-0">
-          <ChannelAvatar
-            channelId={channel.channelId}
-            thumbnailUrl={channel.thumbnailUrl}
-            channelName={channel.channelName}
-          />
+          {/* Avatar wrapped with monetization indicator badge */}
+          <div className="relative flex-shrink-0">
+            <ChannelAvatar
+              channelId={channel.channelId}
+              thumbnailUrl={channel.thumbnailUrl}
+              channelName={channel.channelName}
+            />
+            {/* Rich Top Monetization status indicator next to avatar icon */}
+            <span
+              title={monetTooltip}
+              className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white dark:border-[#09090b] shadow-sm flex items-center justify-center text-[9px] text-white font-bold select-none cursor-help ${monetBadgeColor}`}
+            >
+              {monetizationState === 'monetized' && '✓'}
+              {monetizationState === 'demonetized' && '×'}
+              {monetizationState === 'checking' && '?'}
+            </span>
+          </div>
 
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -445,7 +516,7 @@ export default function ChannelCard({ channel, onFindSimilar }: {
                 {channel.channelName}
               </a>
               
-              {/* Only show Faceless Badge as requested */}
+              {/* Only show Faceless Badge */}
               {channel.isFaceless && (
                 <span className="inline-flex items-center gap-1.5 bg-gray-50 dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 text-gray-600 dark:text-zinc-400 px-2 py-0.5 rounded text-[10px] font-mono font-semibold select-none">
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" /> Faceless
@@ -461,7 +532,7 @@ export default function ChannelCard({ channel, onFindSimilar }: {
 
         {/* Action Controls */}
         <div className="flex items-center gap-2 self-end sm:self-center">
-          {/* Similar dropdown */}
+          {/* Similar competitors dropdown */}
           {onFindSimilar && (
             <div ref={menuRef} className="relative">
               <button
@@ -556,7 +627,7 @@ export default function ChannelCard({ channel, onFindSimilar }: {
             </div>
           )}
 
-          {/* Core action controls */}
+          {/* Bookmarks, Copy & Expand Toggle controls */}
           <div className="flex items-center gap-1 border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/50 rounded-lg p-0.5">
             <button
               onClick={toggleSave}
@@ -591,87 +662,110 @@ export default function ChannelCard({ channel, onFindSimilar }: {
         </div>
       </div>
 
-      {/* ── NICHES CHIP SECTION (Light Gray pills inspired by modern aesthetics) ── */}
+      {/* ── NICHES CHIP SECTION (Light Gray non-duplicated uniform modern pills) ── */}
       <div className="px-5 pb-4 flex flex-wrap gap-1.5">
-        {channel.niche && (
-          <span className="bg-zinc-100 text-zinc-800 dark:bg-zinc-800/80 dark:text-zinc-200 border border-zinc-250 dark:border-zinc-700/60 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 select-none">
-            🏷️ {channel.niche}
-          </span>
-        )}
-        {subNiches.map(sn => (
-          <span key={sn} className="bg-zinc-100 text-zinc-800 dark:bg-zinc-850 dark:text-zinc-300 border border-zinc-250 dark:border-zinc-800/80 px-2.5 py-0.5 rounded-full text-[10px] font-medium tracking-wide select-none">
-            {sn}
+        {nichesToRender.map((nch, idx) => (
+          <span
+            key={nch}
+            className="bg-gray-100 text-gray-700 dark:bg-zinc-850 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800 px-3 py-1 rounded-full text-[10px] font-medium tracking-wide shadow-sm flex items-center gap-1 select-none"
+          >
+            {idx === 0 ? '🏷️' : '·'} {nch}
           </span>
         ))}
       </div>
 
-      {/* ── KEY STATS ROW (9 Horizontal Cards Grid) ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 p-5 border-t border-gray-100 dark:border-zinc-900 bg-gray-50/50 dark:bg-zinc-950/20">
+      {/* ── CORE 4 STATS BOXES ROW (Sirf 4 boxes - 1 line mein) ── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-5 border-t border-gray-100 dark:border-zinc-900 bg-gray-50/50 dark:bg-zinc-950/20">
         {[
           { label: 'Subscribers', value: formatNumber(channel.subscribers) },
-          { label: 'Revenue (30d Est)', value: revenueRange, valueClass: 'text-gray-900 dark:text-zinc-100 font-semibold' },
-          { label: 'RPM (Estimated)', value: rpmLabel, valueClass: 'font-mono' },
-          { label: 'Active Since', value: activeSince, valueClass: 'font-mono' },
           { label: 'Total Videos', value: channel.totalVideos.toLocaleString() },
-          { label: 'Typical Views', value: formatNumber(channel.avgViewsPerVideo) },
-          { label: 'Language', value: channelLang },
-          { label: 'Content Type', value: isShortForm ? 'Shorts' : 'Long-Form' },
-          { label: 'Country', value: channelCountry },
+          { label: 'Total Views', value: formatNumber(channel.totalViews) },
+          { label: 'Creation Date', value: getActualCreationDate(channel.daysSinceStart), valueClass: 'font-mono' },
         ].map(stat => (
-          <div key={stat.label} className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3 flex flex-col justify-between hover:border-gray-200 dark:hover:border-zinc-800 transition-colors shadow-sm">
+          <div key={stat.label} className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3.5 flex flex-col justify-between hover:border-gray-200 dark:hover:border-zinc-850 transition-colors shadow-sm">
             <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">{stat.label}</span>
-            <p className={`text-xs font-bold text-gray-800 dark:text-zinc-200 mt-1.5 ${stat.valueClass || ''}`}>{stat.value}</p>
+            <p className={`text-xs font-bold text-gray-800 dark:text-zinc-200 mt-2 ${stat.valueClass || ''}`}>{stat.value}</p>
           </div>
         ))}
       </div>
 
-      {/* ── EXPANDED EXTRA INFO SECTION ── */}
+      {/* ── EXPANDED EXTRA INFO SECTION (Down arrow expanded - 11 Stats Grid) ── */}
       {expanded && (
         <div className="border-t border-gray-100 dark:border-zinc-900 p-5 bg-gray-50/30 dark:bg-zinc-950/30">
           <p className="text-[9px] text-gray-500 dark:text-zinc-500 font-mono font-bold uppercase tracking-widest mb-4">Metadata & Performance Insights</p>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-            {/* Outlier Score card */}
-            <div className={`border rounded-xl p-3 flex flex-col justify-between ${scoreBg} ${scoreBorder}`}>
-              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Outlier Growth Score</span>
-              <div className="mt-1.5 flex items-center justify-between">
-                <span className={`text-sm font-black ${scoreText}`}>{channel.outlierScore.toFixed(2)}x</span>
-                <span className={`text-[9px] uppercase font-mono tracking-wider font-semibold ${scoreText}`}>{scoreLabel}</span>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {/* 1. Monetization Status Card */}
+            <div className={`border rounded-xl p-3.5 flex flex-col justify-between shadow-sm ${monetBgColor}`}>
+              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Monetization Status</span>
+              <p className={`text-xs font-bold mt-2 flex items-center gap-1 ${monetTextColor}`}>
+                {monetizationState === 'monetized' && '✅ Monetized'}
+                {monetizationState === 'demonetized' && '❌ Demonetized'}
+                {monetizationState === 'checking' && '⏳ Unknown / Checking'}
+              </p>
+            </div>
+
+            {/* 2. Language Card */}
+            <div className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3.5 flex flex-col justify-between shadow-sm hover:border-gray-200 dark:hover:border-zinc-800 transition-colors">
+              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Language</span>
+              <p className="text-xs font-bold text-gray-800 dark:text-zinc-200 mt-2">{channelLang}</p>
+            </div>
+
+            {/* 3. Country Card */}
+            <div className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3.5 flex flex-col justify-between shadow-sm hover:border-gray-200 dark:hover:border-zinc-800 transition-colors">
+              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Country</span>
+              <p className="text-xs font-bold text-gray-800 dark:text-zinc-200 mt-2">{channelCountry}</p>
+            </div>
+
+            {/* 4. 1st Upload Date Card */}
+            <div className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3.5 flex flex-col justify-between shadow-sm hover:border-gray-200 dark:hover:border-zinc-800 transition-colors">
+              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">1st Upload Date</span>
+              <p className="text-xs font-bold text-gray-800 dark:text-zinc-200 mt-2 font-mono">{oldestVideoUpload}</p>
+            </div>
+
+            {/* 5. Content Type Card */}
+            <div className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3.5 flex flex-col justify-between shadow-sm hover:border-gray-200 dark:hover:border-zinc-800 transition-colors">
+              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Content Type</span>
+              <p className="text-xs font-bold text-gray-800 dark:text-zinc-200 mt-2">{isShortForm ? 'Shorts' : 'Long-Form'}</p>
+            </div>
+
+            {/* 6. Has Shorts? Card */}
+            <div className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3.5 flex flex-col justify-between shadow-sm hover:border-gray-200 dark:hover:border-zinc-800 transition-colors">
+              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Has Shorts?</span>
+              <p className="text-xs font-bold text-gray-800 dark:text-zinc-200 mt-2">{hasShorts}</p>
+            </div>
+
+            {/* 7. Average Views Per Video Card */}
+            <div className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3.5 flex flex-col justify-between shadow-sm hover:border-gray-200 dark:hover:border-zinc-800 transition-colors">
+              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Avg Views / Video</span>
+              <p className="text-xs font-bold text-gray-800 dark:text-zinc-200 mt-2 font-mono">{formatNumber(channel.avgViewsPerVideo)}</p>
+            </div>
+
+            {/* 8. Average Video Length Card */}
+            <div className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3.5 flex flex-col justify-between shadow-sm hover:border-gray-200 dark:hover:border-zinc-800 transition-colors">
+              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Avg Video Length</span>
+              <p className="text-xs font-bold text-gray-800 dark:text-zinc-200 mt-2 font-mono">{formatAvgVideoLength(channel.avgVideoLength || 0)}</p>
+            </div>
+
+            {/* 9. Outlier Growth Card */}
+            <div className={`border rounded-xl p-3.5 flex flex-col justify-between shadow-sm ${scoreBg} ${scoreBorder} hover:border-gray-200 dark:hover:border-zinc-800 transition-colors`}>
+              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Outlier Growth</span>
+              <div className="mt-2 flex items-center justify-between">
+                <span className={`text-xs font-bold font-mono ${scoreText}`}>{channel.outlierScore.toFixed(2)}x</span>
+                <span className={`text-[8px] uppercase font-mono tracking-wider font-semibold ${scoreText}`}>{scoreLabel}</span>
               </div>
             </div>
 
-            {/* Monetized status card (checkmark/cross icon badge) */}
-            <div className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3 flex flex-col justify-between shadow-sm">
-              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Monetization Status</span>
-              <p className={`text-xs font-bold mt-1.5 flex items-center gap-1 ${channel.isMonetized ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                {channel.isMonetized ? (
-                  <>
-                    <svg className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                    <span>Monetized</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                    <span>Not Monetized</span>
-                  </>
-                )}
-              </p>
+            {/* 10. Last 30 Days Views Card */}
+            <div className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3.5 flex flex-col justify-between shadow-sm hover:border-gray-200 dark:hover:border-zinc-800 transition-colors">
+              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Last 30 Days Views</span>
+              <p className="text-xs font-bold text-gray-800 dark:text-zinc-200 mt-2 font-mono">{formatNumber(monthlyViewsEst)}</p>
             </div>
 
-            {/* Channel Age Card (Creation Date instead of Spotted Date) */}
-            <div className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3 flex flex-col justify-between shadow-sm">
-              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Channel Age</span>
-              <p className="text-xs font-bold text-gray-800 dark:text-zinc-200 mt-1.5 font-mono">
-                {getRelativeAge(channel.daysSinceStart)} ({getEstimatedCreationDate(channel.daysSinceStart)})
-              </p>
-            </div>
-
-            {/* Country Card */}
-            <div className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3 flex flex-col justify-between shadow-sm">
-              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Channel Country</span>
-              <p className="text-xs font-bold text-gray-800 dark:text-zinc-200 mt-1.5">
-                {channelCountry}
-              </p>
+            {/* 11. Last 30 Days Estimated Earnings Card */}
+            <div className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3.5 flex flex-col justify-between shadow-sm hover:border-gray-200 dark:hover:border-zinc-800 transition-colors col-span-2 md:col-span-1">
+              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Last 30d Earnings</span>
+              <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-2 font-mono">{revenueRange}</p>
             </div>
           </div>
         </div>

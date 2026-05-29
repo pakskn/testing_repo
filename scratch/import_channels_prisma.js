@@ -71,7 +71,7 @@ async function main() {
           subscribers,
           totalVideos,
           totalViews: BigInt(totalViews),
-          channelType,
+          channelType: channelType === 'long_form' ? 'long' : channelType === 'short_form' ? 'short' : channelType,
           niche,
           daysSinceStart,
           avgViewsPerVideo,
