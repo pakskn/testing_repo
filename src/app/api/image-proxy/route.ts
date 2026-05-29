@@ -78,12 +78,6 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('Image proxy error:', error)
-    // Silently fallback to transparent pixel so layouts never break visually
-    return new NextResponse(TRANSPARENT_PIXEL, {
-      headers: {
-        'Content-Type': 'image/png',
-        'Cache-Control': 'public, max-age=86400', // Cache fallback for 1 day
-      }
-    })
+    return new NextResponse('Image not found', { status: 404 })
   }
 }

@@ -118,7 +118,7 @@ function VideoThumbnail({ videoId, storedUrl, title, duration, isShortForm = fal
           alt={title}
           fill
           sizes="(max-width: 768px) 33vw, 15vw"
-          className="object-contain group-hover:opacity-75 transition-all duration-300"
+          className="object-cover group-hover:opacity-75 transition-all duration-300"
           onError={handleError}
         />
       ) : (
