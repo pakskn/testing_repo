@@ -25,7 +25,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [])
 
   return (
-    <div className="flex min-h-screen bg-[#09090b] text-zinc-100 font-sans antialiased">
+    <div className="flex min-h-screen bg-gray-50 dark:bg-[#09090b] text-gray-900 dark:text-zinc-100 font-sans antialiased">
 
       {/* Mobile backdrop */}
       {sidebarOpen && (
@@ -33,18 +33,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       )}
 
       {/* Admin Sidebar */}
-      <aside className={`fixed left-0 top-0 h-full w-56 bg-[#09090b] border-r border-zinc-800 flex flex-col z-50 transition-transform duration-200 ${
+      <aside className={`fixed left-0 top-0 h-full w-56 bg-white dark:bg-[#09090b] border-r border-gray-200 dark:border-zinc-800 flex flex-col z-50 transition-transform duration-200 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         {/* Header Branding */}
-        <div className="px-5 py-4 border-b border-zinc-800 flex items-center justify-between flex-shrink-0">
+        <div className="px-5 py-4 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between flex-shrink-0">
           <div>
-            <p className="text-zinc-100 font-semibold text-sm tracking-tight flex items-center gap-1.5">
+            <p className="text-gray-900 dark:text-zinc-100 font-semibold text-sm tracking-tight flex items-center gap-1.5">
               <span>⚙️</span> CMS Admin Panel
             </p>
-            <p className="text-zinc-500 text-[10px] uppercase font-mono tracking-wider mt-0.5">Niche Finder Tool</p>
+            <p className="text-gray-500 dark:text-zinc-500 text-[10px] uppercase font-mono tracking-wider mt-0.5">Niche Finder Tool</p>
           </div>
-          <button onClick={() => setSidebarOpen(false)} className="text-zinc-400 hover:text-zinc-100 md:hidden transition-colors">✕</button>
+          <button onClick={() => setSidebarOpen(false)} className="text-gray-400 dark:text-zinc-400 hover:text-gray-950 dark:hover:text-zinc-100 md:hidden transition-colors">✕</button>
         </div>
 
         {/* Sidebar Nav */}
@@ -57,8 +57,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 href={item.href}
                 className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
                   active
-                    ? 'bg-indigo-600/10 text-indigo-400 border border-indigo-500/20'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 border border-transparent'
+                    ? 'bg-indigo-600/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20 font-semibold'
+                    : 'text-gray-600 dark:text-zinc-400 hover:text-gray-955 dark:hover:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-900 border border-transparent'
                 }`}
               >
                 <span className="text-sm opacity-80">{item.icon}</span>
@@ -67,10 +67,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             )
           })}
           
-          <div className="pt-3 border-t border-zinc-800 mt-3">
+          <div className="pt-3 border-t border-gray-200 dark:border-zinc-800 mt-3">
             <a 
               href="/" 
-              className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900 border border-transparent transition-colors"
+              className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-gray-500 dark:text-zinc-500 hover:text-gray-900 dark:hover:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-900 border border-transparent transition-colors"
             >
               <span>🏡</span> Back to App
             </a>
@@ -83,10 +83,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         sidebarOpen ? 'md:ml-56' : 'ml-0'
       }`}>
         {/* Admin top bar */}
-        <div className="sticky top-0 z-30 bg-[#09090b]/80 backdrop-blur-md border-b border-zinc-800 px-4 h-12 flex items-center gap-3 flex-shrink-0">
+        <div className="sticky top-0 z-30 bg-white/80 dark:bg-[#09090b]/80 backdrop-blur-md border-b border-gray-200 dark:border-zinc-800 px-4 h-12 flex items-center gap-3 flex-shrink-0">
           <button
             onClick={() => setSidebarOpen(o => !o)}
-            className="w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 rounded-lg transition-colors"
+            className="w-8 h-8 flex items-center justify-center text-gray-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-100 hover:bg-gray-100 dark:hover:bg-zinc-900 rounded-lg transition-colors"
             title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
           >
             <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -94,20 +94,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </svg>
           </button>
           
-          <span className="font-semibold text-zinc-300 text-xs tracking-tight uppercase font-mono">CMS Panel</span>
+          <span className="font-semibold text-gray-750 dark:text-zinc-300 text-xs tracking-tight uppercase font-mono">CMS Panel</span>
           
           <div className="flex-1" />
           
           <a 
             href="/" 
-            className="text-xs text-zinc-400 hover:text-zinc-100 transition-colors border border-zinc-800 bg-zinc-900/50 hover:bg-zinc-900 px-3 py-1 rounded-lg"
+            className="text-xs text-gray-650 dark:text-zinc-400 hover:text-gray-950 dark:hover:text-zinc-100 transition-colors border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/50 hover:bg-gray-100 dark:hover:bg-zinc-900 px-3 py-1 rounded-lg"
           >
             ← Live Site
           </a>
         </div>
 
         {/* Page content */}
-        <div className="flex-1 bg-[#09090b]">{children}</div>
+        <div className="flex-1 bg-gray-50 dark:bg-[#09090b]">{children}</div>
       </main>
     </div>
   )

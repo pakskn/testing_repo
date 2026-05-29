@@ -106,7 +106,7 @@ function VideoThumbnail({ videoId, storedUrl, title, duration, isShortForm = fal
   const proxiedSrc = currentSrc ? `/api/image-proxy?url=${encodeURIComponent(currentSrc)}` : ''
 
   return (
-    <div className={`relative ${aspectClass} rounded-lg overflow-hidden bg-zinc-900/50 mb-1.5 border border-zinc-800/80`}>
+    <div className={`relative ${aspectClass} rounded-lg overflow-hidden bg-gray-50 dark:bg-zinc-900/50 mb-1.5 border border-gray-150 dark:border-zinc-800/80`}>
       {!showPlaceholder ? (
         <Image
           key={currentSrc}
@@ -119,8 +119,8 @@ function VideoThumbnail({ videoId, storedUrl, title, duration, isShortForm = fal
         />
       ) : (
         <div className="w-full h-full flex flex-col items-center justify-center gap-1">
-          <span className="text-zinc-500 text-3xl">▶</span>
-          {isShortForm && <span className="text-[9px] text-zinc-600">#Shorts</span>}
+          <span className="text-gray-400 dark:text-zinc-500 text-3xl">▶</span>
+          {isShortForm && <span className="text-[9px] text-gray-500 dark:text-zinc-600">#Shorts</span>}
         </div>
       )}
       {duration && !showPlaceholder && (
@@ -148,7 +148,7 @@ function ChannelAvatar({ channelId, thumbnailUrl, channelName }: {
           alt={channelName}
           width={44}
           height={44}
-          className="w-11 h-11 rounded-full object-cover border border-zinc-800"
+          className="w-11 h-11 rounded-full object-cover border border-gray-200 dark:border-zinc-800"
           onError={() => setFailed(true)}
         />
       </a>
@@ -157,7 +157,7 @@ function ChannelAvatar({ channelId, thumbnailUrl, channelName }: {
 
   return (
     <a href={`https://youtube.com/channel/${channelId}`} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-      <div className="w-11 h-11 rounded-full bg-zinc-850 flex items-center justify-center text-zinc-300 font-bold text-sm border border-zinc-800">
+      <div className="w-11 h-11 rounded-full bg-gray-100 dark:bg-zinc-850 flex items-center justify-center text-gray-700 dark:text-zinc-300 font-bold text-sm border border-gray-200 dark:border-zinc-800">
         {channelName.charAt(0).toUpperCase()}
       </div>
     </a>
@@ -225,12 +225,12 @@ function VideoScroller({ videos, isShortForm }: { videos: Channel['videos']; isS
     setIsDragging(false)
   }
 
-  const ARROW_BTN = 'w-6 h-6 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-zinc-200 rounded-full flex items-center justify-center transition-all text-xs leading-none select-none flex-shrink-0'
+  const ARROW_BTN = 'w-6 h-6 bg-white dark:bg-zinc-900 hover:bg-gray-100 dark:hover:bg-zinc-800 border border-gray-200 dark:border-zinc-800 text-gray-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-200 rounded-full flex items-center justify-center transition-all text-xs leading-none select-none flex-shrink-0'
 
   return (
-    <div className="border-t border-zinc-900 p-4">
+    <div className="border-t border-gray-100 dark:border-zinc-900 p-4">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-[10px] text-zinc-500 font-semibold uppercase tracking-widest font-mono">
+        <span className="text-[10px] text-gray-400 dark:text-zinc-500 font-semibold uppercase tracking-widest font-mono">
           Most Popular Videos
         </span>
         <div className="flex items-center gap-1">
@@ -269,10 +269,10 @@ function VideoScroller({ videos, isShortForm }: { videos: Channel['videos']; isS
               duration={video.duration}
               isShortForm={isShortForm}
             />
-            <p className="text-[11px] text-zinc-400 line-clamp-1 group-hover:text-white transition-colors leading-tight mt-0.5">
+            <p className="text-[11px] text-gray-600 dark:text-zinc-400 line-clamp-1 group-hover:text-indigo-600 dark:group-hover:text-white transition-colors leading-tight mt-0.5">
               {video.title}
             </p>
-            <p className="text-[10px] text-zinc-500 font-mono mt-0.5">
+            <p className="text-[10px] text-gray-400 dark:text-zinc-500 font-mono mt-0.5">
               {formatNumber(video.views)} · {timeAgo(video.publishedAt)}
             </p>
           </a>
@@ -416,11 +416,11 @@ export default function ChannelCard({ channel, onFindSimilar }: {
   const channelCountry = (channel as any).country || 'N/A'
 
   return (
-    <div className="relative bg-[#09090b] border border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-700 transition-colors shadow-sm">
+    <div className="relative bg-white dark:bg-[#09090b] border border-gray-100 dark:border-zinc-800 rounded-xl overflow-hidden hover:border-gray-200 dark:hover:border-zinc-700 transition-colors shadow-sm">
 
       {/* Toast Notification */}
       {toast && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-zinc-950 text-white text-xs font-mono px-3.5 py-2 rounded-lg border border-zinc-850 shadow-xl z-50 whitespace-nowrap pointer-events-none">
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-white dark:bg-zinc-950 text-gray-900 dark:text-white text-xs font-mono px-3.5 py-2 rounded-lg border border-gray-200 dark:border-zinc-850 shadow-xl z-50 whitespace-nowrap pointer-events-none">
           {toast}
         </div>
       )}
@@ -440,20 +440,20 @@ export default function ChannelCard({ channel, onFindSimilar }: {
                 href={`https://youtube.com/channel/${channel.channelId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-bold text-zinc-100 hover:text-indigo-400 hover:underline transition-colors truncate max-w-[180px] text-sm"
+                className="font-bold text-gray-900 dark:text-zinc-100 hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline transition-colors truncate max-w-[180px] text-sm"
               >
                 {channel.channelName}
               </a>
               
               {/* Only show Faceless Badge as requested */}
               {channel.isFaceless && (
-                <span className="inline-flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 text-zinc-400 px-2 py-0.5 rounded text-[10px] font-mono font-semibold select-none">
+                <span className="inline-flex items-center gap-1.5 bg-gray-50 dark:bg-zinc-900 border border-gray-150 dark:border-zinc-800 text-gray-600 dark:text-zinc-400 px-2 py-0.5 rounded text-[10px] font-mono font-semibold select-none">
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" /> Faceless
                 </span>
               )}
             </div>
             
-            <p className="text-[10px] text-zinc-500 font-mono mt-0.5 truncate select-all">
+            <p className="text-[10px] text-gray-500 dark:text-zinc-500 font-mono mt-0.5 truncate select-all">
               {channel.channelHandle || `@${channel.channelName.toLowerCase().replace(/[^a-z0-9]/g, '')}`}
             </p>
           </div>
@@ -469,7 +469,7 @@ export default function ChannelCard({ channel, onFindSimilar }: {
                 className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                   showSimilarMenu
                     ? 'bg-indigo-600 text-white border-indigo-500'
-                    : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white hover:bg-zinc-800'
+                    : 'bg-gray-50 dark:bg-zinc-900 text-gray-600 dark:text-zinc-400 border-gray-200 dark:border-zinc-800 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-zinc-800'
                 }`}
               >
                 🔍 Similar
@@ -480,9 +480,9 @@ export default function ChannelCard({ channel, onFindSimilar }: {
 
               {/* Similar Options */}
               {showSimilarMenu && (
-                <div className="absolute right-0 top-full mt-1.5 w-64 bg-[#09090b] border border-zinc-800 rounded-lg shadow-xl z-50 overflow-hidden font-sans">
-                  <div className="px-3 py-2 bg-[#0d0d0f] border-b border-zinc-800">
-                    <p className="text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-widest">
+                <div className="absolute right-0 top-full mt-1.5 w-64 bg-white dark:bg-[#09090b] border border-gray-200 dark:border-zinc-800 rounded-lg shadow-xl z-50 overflow-hidden font-sans">
+                  <div className="px-3 py-2 bg-gray-50 dark:bg-[#0d0d0f] border-b border-gray-200 dark:border-zinc-800">
+                    <p className="text-[9px] font-mono font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-widest">
                       Competitors Finder
                     </p>
                   </div>
@@ -491,12 +491,12 @@ export default function ChannelCard({ channel, onFindSimilar }: {
                     {channel.niche && (
                       <button
                         onClick={() => fireSimilar({ type: 'niche', channelName: channel.channelName, niches: [channel.niche!] })}
-                        className="w-full flex items-start gap-2.5 px-3 py-2 hover:bg-zinc-900 transition-colors text-left"
+                        className="w-full flex items-start gap-2.5 px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-900 transition-colors text-left"
                       >
                         <span className="text-xs">🏷️</span>
                         <div className="min-w-0">
-                          <p className="text-xs font-semibold text-zinc-200">Same Niche</p>
-                          <p className="text-[10px] text-zinc-500 truncate">{channel.niche} channels only</p>
+                          <p className="text-xs font-semibold text-gray-800 dark:text-zinc-200">Same Niche</p>
+                          <p className="text-[10px] text-gray-500 dark:text-zinc-500 truncate">{channel.niche} channels only</p>
                         </div>
                       </button>
                     )}
@@ -504,12 +504,12 @@ export default function ChannelCard({ channel, onFindSimilar }: {
                     {channel.niche && (
                       <button
                         onClick={() => fireSimilar({ type: 'related_niches', channelName: channel.channelName, niches: getRelatedNiches(channel.niche!) })}
-                        className="w-full flex items-start gap-2.5 px-3 py-2 hover:bg-zinc-900 transition-colors text-left"
+                        className="w-full flex items-start gap-2.5 px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-900 transition-colors text-left"
                       >
                         <span className="text-xs">🔗</span>
                         <div className="min-w-0">
-                          <p className="text-xs font-semibold text-zinc-200">Related Niches</p>
-                          <p className="text-[10px] text-zinc-500 truncate">{describeRelated(channel.niche!)}</p>
+                          <p className="text-xs font-semibold text-gray-800 dark:text-zinc-200">Related Niches</p>
+                          <p className="text-[10px] text-gray-500 dark:text-zinc-500 truncate">{describeRelated(channel.niche!)}</p>
                         </div>
                       </button>
                     )}
@@ -517,12 +517,12 @@ export default function ChannelCard({ channel, onFindSimilar }: {
                     {titleKeyword && (
                       <button
                         onClick={() => fireSimilar({ type: 'title', channelName: channel.channelName, keyword: titleKeyword })}
-                        className="w-full flex items-start gap-2.5 px-3 py-2 hover:bg-zinc-900 transition-colors text-left"
+                        className="w-full flex items-start gap-2.5 px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-900 transition-colors text-left"
                       >
                         <span className="text-xs">📝</span>
                         <div className="min-w-0">
-                          <p className="text-xs font-semibold text-zinc-200">Similar Titles</p>
-                          <p className="text-[10px] text-zinc-500 truncate">Keyword: &quot;{titleKeyword}&quot;</p>
+                          <p className="text-xs font-semibold text-gray-800 dark:text-zinc-200">Similar Titles</p>
+                          <p className="text-[10px] text-gray-500 dark:text-zinc-500 truncate">Keyword: &quot;{titleKeyword}&quot;</p>
                         </div>
                       </button>
                     )}
@@ -530,24 +530,24 @@ export default function ChannelCard({ channel, onFindSimilar }: {
                     {channel.daysSinceStart > 0 && (
                       <button
                         onClick={() => fireSimilar({ type: 'same_age', channelName: channel.channelName, ...getDaysRange() })}
-                        className="w-full flex items-start gap-2.5 px-3 py-2 hover:bg-zinc-900 transition-colors text-left"
+                        className="w-full flex items-start gap-2.5 px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-900 transition-colors text-left"
                       >
                         <span className="text-xs">📅</span>
                         <div className="min-w-0">
-                          <p className="text-xs font-semibold text-zinc-200">Same Channel Age</p>
-                          <p className="text-[10px] text-zinc-500">Started around same time</p>
+                          <p className="text-xs font-semibold text-gray-800 dark:text-zinc-200">Same Channel Age</p>
+                          <p className="text-[10px] text-gray-500 dark:text-zinc-500">Started around same time</p>
                         </div>
                       </button>
                     )}
 
                     <button
                       onClick={() => fireSimilar({ type: 'similar_size', channelName: channel.channelName, ...getSubsRange() })}
-                      className="w-full flex items-start gap-2.5 px-3 py-2 hover:bg-zinc-900 transition-colors text-left"
+                      className="w-full flex items-start gap-2.5 px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-900 transition-colors text-left"
                     >
                       <span className="text-xs">👤</span>
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold text-zinc-200">Similar Size</p>
-                        <p className="text-[10px] text-zinc-500">Same subscriber size range</p>
+                        <p className="text-xs font-semibold text-gray-800 dark:text-zinc-200">Similar Size</p>
+                        <p className="text-[10px] text-gray-500 dark:text-zinc-500">Same subscriber size range</p>
                       </div>
                     </button>
                   </div>
@@ -557,13 +557,13 @@ export default function ChannelCard({ channel, onFindSimilar }: {
           )}
 
           {/* Core action controls */}
-          <div className="flex items-center gap-1 border border-zinc-800 bg-zinc-900/50 rounded-lg p-0.5">
+          <div className="flex items-center gap-1 border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/50 rounded-lg p-0.5">
             <button
               onClick={toggleSave}
               title={saved ? 'Remove from saved' : 'Save channel'}
-              className="p-1.5 rounded-md hover:bg-zinc-800 transition-colors"
+              className="p-1.5 rounded-md hover:bg-gray-250/70 dark:hover:bg-zinc-800 transition-colors"
             >
-              <svg className={`w-3.5 h-3.5 transition-all duration-300 ${saved ? 'text-indigo-500 fill-indigo-500 stroke-indigo-500' : 'stroke-zinc-400 text-zinc-400 hover:text-white'}`} fill={saved ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`w-3.5 h-3.5 transition-all duration-300 ${saved ? 'text-indigo-500 fill-indigo-500 stroke-indigo-500' : 'stroke-gray-500 dark:stroke-zinc-400 text-gray-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white'}`} fill={saved ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 3H7a2 2 0 00-2 2v16l7-3 7 3V5a2 2 0 00-2-2z" />
               </svg>
             </button>
@@ -571,7 +571,7 @@ export default function ChannelCard({ channel, onFindSimilar }: {
             <button
               onClick={handleShare}
               title="Copy channel URL"
-              className="p-1.5 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+              className="p-1.5 rounded-md hover:bg-gray-250/70 dark:hover:bg-zinc-800 text-gray-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -581,7 +581,7 @@ export default function ChannelCard({ channel, onFindSimilar }: {
             <button
               onClick={() => setExpanded(e => !e)}
               title={expanded ? 'Collapse' : 'Expand'}
-              className="p-1.5 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+              className="p-1.5 rounded-md hover:bg-gray-250/70 dark:hover:bg-zinc-800 text-gray-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
               <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${expanded ? 'rotate-180 text-indigo-500' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -606,10 +606,10 @@ export default function ChannelCard({ channel, onFindSimilar }: {
       </div>
 
       {/* ── KEY STATS ROW (9 Horizontal Cards Grid) ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 p-5 border-t border-zinc-900 bg-zinc-950/20">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 p-5 border-t border-gray-100 dark:border-zinc-900 bg-gray-50/50 dark:bg-zinc-950/20">
         {[
           { label: 'Subscribers', value: formatNumber(channel.subscribers) },
-          { label: 'Revenue (30d Est)', value: revenueRange, valueClass: 'text-zinc-100 font-semibold' },
+          { label: 'Revenue (30d Est)', value: revenueRange, valueClass: 'text-gray-900 dark:text-zinc-100 font-semibold' },
           { label: 'RPM (Estimated)', value: rpmLabel, valueClass: 'font-mono' },
           { label: 'Active Since', value: activeSince, valueClass: 'font-mono' },
           { label: 'Total Videos', value: channel.totalVideos.toLocaleString() },
@@ -618,22 +618,22 @@ export default function ChannelCard({ channel, onFindSimilar }: {
           { label: 'Content Type', value: isShortForm ? 'Shorts' : 'Long-Form' },
           { label: 'Country', value: channelCountry },
         ].map(stat => (
-          <div key={stat.label} className="bg-[#09090b] border border-zinc-850 rounded-xl p-3 flex flex-col justify-between hover:border-zinc-800 transition-colors">
-            <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest font-semibold">{stat.label}</span>
-            <p className={`text-xs font-bold text-zinc-200 mt-1.5 ${stat.valueClass || ''}`}>{stat.value}</p>
+          <div key={stat.label} className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3 flex flex-col justify-between hover:border-gray-200 dark:hover:border-zinc-800 transition-colors shadow-sm">
+            <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">{stat.label}</span>
+            <p className={`text-xs font-bold text-gray-800 dark:text-zinc-200 mt-1.5 ${stat.valueClass || ''}`}>{stat.value}</p>
           </div>
         ))}
       </div>
 
       {/* ── EXPANDED EXTRA INFO SECTION ── */}
       {expanded && (
-        <div className="border-t border-zinc-900 p-5 bg-zinc-950/30">
-          <p className="text-[9px] text-zinc-500 font-mono font-bold uppercase tracking-widest mb-4">Metadata & Performance Insights</p>
+        <div className="border-t border-gray-100 dark:border-zinc-900 p-5 bg-gray-50/30 dark:bg-zinc-950/30">
+          <p className="text-[9px] text-gray-500 dark:text-zinc-500 font-mono font-bold uppercase tracking-widest mb-4">Metadata & Performance Insights</p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             {/* Outlier Score card */}
             <div className={`border rounded-xl p-3 flex flex-col justify-between ${scoreBg} ${scoreBorder}`}>
-              <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest font-semibold">Outlier Growth Score</span>
+              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Outlier Growth Score</span>
               <div className="mt-1.5 flex items-center justify-between">
                 <span className={`text-sm font-black ${scoreText}`}>{channel.outlierScore.toFixed(2)}x</span>
                 <span className={`text-[9px] uppercase font-mono tracking-wider font-semibold ${scoreText}`}>{scoreLabel}</span>
@@ -641,17 +641,17 @@ export default function ChannelCard({ channel, onFindSimilar }: {
             </div>
 
             {/* Monetized status card (checkmark/cross icon badge) */}
-            <div className="bg-[#09090b] border border-zinc-850 rounded-xl p-3 flex flex-col justify-between">
-              <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest font-semibold">Monetization Status</span>
-              <p className={`text-xs font-bold mt-1.5 flex items-center gap-1 ${channel.isMonetized ? 'text-emerald-400' : 'text-rose-400'}`}>
+            <div className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3 flex flex-col justify-between shadow-sm">
+              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Monetization Status</span>
+              <p className={`text-xs font-bold mt-1.5 flex items-center gap-1 ${channel.isMonetized ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                 {channel.isMonetized ? (
                   <>
-                    <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    <svg className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                     <span>Monetized</span>
                   </>
                 ) : (
                   <>
-                    <svg className="w-3.5 h-3.5 text-rose-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    <svg className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                     <span>Not Monetized</span>
                   </>
                 )}
@@ -659,17 +659,17 @@ export default function ChannelCard({ channel, onFindSimilar }: {
             </div>
 
             {/* Channel Age Card (Creation Date instead of Spotted Date) */}
-            <div className="bg-[#09090b] border border-zinc-850 rounded-xl p-3 flex flex-col justify-between">
-              <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest font-semibold">Channel Age</span>
-              <p className="text-xs font-bold text-zinc-200 mt-1.5 font-mono">
+            <div className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3 flex flex-col justify-between shadow-sm">
+              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Channel Age</span>
+              <p className="text-xs font-bold text-gray-800 dark:text-zinc-200 mt-1.5 font-mono">
                 {getRelativeAge(channel.daysSinceStart)} ({getEstimatedCreationDate(channel.daysSinceStart)})
               </p>
             </div>
 
             {/* Country Card */}
-            <div className="bg-[#09090b] border border-zinc-850 rounded-xl p-3 flex flex-col justify-between">
-              <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest font-semibold">Channel Country</span>
-              <p className="text-xs font-bold text-zinc-200 mt-1.5">
+            <div className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3 flex flex-col justify-between shadow-sm">
+              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Channel Country</span>
+              <p className="text-xs font-bold text-gray-800 dark:text-zinc-200 mt-1.5">
                 {channelCountry}
               </p>
             </div>

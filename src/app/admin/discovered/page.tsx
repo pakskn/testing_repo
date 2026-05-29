@@ -133,14 +133,14 @@ export default function AdminDiscoveredPage() {
       {/* Page Header */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-zinc-100 tracking-tight">Discovered Queue</h1>
-          <p className="text-zinc-400 text-xs mt-1">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-zinc-100 tracking-tight">Discovered Queue</h1>
+          <p className="text-gray-505 dark:text-zinc-400 text-xs mt-1">
             Review and import new YouTube niche channels harvested dynamically by your Chrome Extension users.
           </p>
         </div>
         <button
           onClick={fetchDiscovered}
-          className="bg-zinc-900 border border-zinc-800 text-zinc-300 px-4 py-2 rounded-lg text-xs font-semibold hover:bg-zinc-800 hover:text-white transition-colors flex items-center gap-1.5 self-start sm:self-center"
+          className="bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-750 dark:text-zinc-300 px-4 py-2 rounded-lg text-xs font-semibold hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-gray-950 dark:hover:text-white transition-colors flex items-center gap-1.5 self-start sm:self-center shadow-sm"
         >
           🔄 Refresh Queue
         </button>
@@ -148,51 +148,51 @@ export default function AdminDiscoveredPage() {
 
       {/* Alerts */}
       {message && (
-        <div className="mb-6 p-4 bg-indigo-950/20 text-indigo-400 border border-indigo-900/40 rounded-xl text-xs font-mono">
+        <div className="mb-6 p-4 bg-indigo-950/10 dark:bg-indigo-950/20 text-indigo-650 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/40 rounded-xl text-xs font-mono">
           ✅ {message}
         </div>
       )}
 
       {error && (
-        <div className="mb-6 p-4 bg-red-950/20 text-red-400 border border-red-900/40 rounded-xl text-xs font-mono">
+        <div className="mb-6 p-4 bg-red-950/10 dark:bg-red-950/20 text-red-605 dark:text-red-400 border border-red-200 dark:border-red-900/40 rounded-xl text-xs font-mono">
           ❌ {error}
         </div>
       )}
 
       {/* Search Bar & Stats */}
-      <div className="bg-[#09090b] border border-zinc-800 rounded-lg p-4 mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="bg-white dark:bg-[#09090b] border border-gray-200 dark:border-zinc-800 rounded-lg p-4 mb-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
         <div className="relative w-full md:w-80">
           <input
             type="text"
             placeholder="Search discovered channels..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 border border-zinc-800 rounded-lg bg-[#09090b] text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+            className="w-full pl-9 pr-4 py-2 border border-gray-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-[#09090b] text-xs text-gray-900 dark:text-zinc-100 placeholder-gray-400 dark:placeholder-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
           />
-          <span className="absolute left-3 top-2.5 text-zinc-500 text-xs">🔍</span>
+          <span className="absolute left-3 top-2.5 text-gray-400 dark:text-zinc-500 text-xs">🔍</span>
         </div>
-        <div className="text-[11px] font-mono text-zinc-500 flex items-center gap-4 whitespace-nowrap self-end md:self-center">
-          <p>Pending: <strong className="text-zinc-300">{list.length}</strong></p>
-          <p>Filtered: <strong className="text-indigo-400">{filteredList.length}</strong></p>
+        <div className="text-[11px] font-mono text-gray-500 dark:text-zinc-500 flex items-center gap-4 whitespace-nowrap self-end md:self-center">
+          <p>Pending: <strong className="text-gray-700 dark:text-zinc-300">{list.length}</strong></p>
+          <p>Filtered: <strong className="text-indigo-600 dark:text-indigo-400">{filteredList.length}</strong></p>
         </div>
       </div>
 
       {/* Discovered table */}
-      <div className="bg-[#09090b] border border-zinc-800 rounded-lg overflow-hidden">
+      <div className="bg-white dark:bg-[#09090b] border border-gray-200 dark:border-zinc-800 rounded-lg overflow-hidden shadow-sm">
         {loading ? (
-          <div className="p-16 text-center text-zinc-400 text-xs font-mono uppercase tracking-widest flex items-center justify-center gap-2">
-            <div className="w-4 h-4 border-2 border-zinc-700 border-t-indigo-500 rounded-full animate-spin" />
+          <div className="p-16 text-center text-gray-500 dark:text-zinc-400 text-xs font-mono uppercase tracking-widest flex items-center justify-center gap-2">
+            <div className="w-4 h-4 border-2 border-gray-200 dark:border-zinc-700 border-t-indigo-500 rounded-full animate-spin" />
             Loading discovery queue...
           </div>
         ) : filteredList.length === 0 ? (
-          <div className="p-16 text-center text-zinc-500 text-xs font-mono">
+          <div className="p-16 text-center text-gray-400 dark:text-zinc-500 text-xs font-mono">
             Discovered queue is empty
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-[#09090b] text-[10px] uppercase font-mono tracking-wider text-zinc-400 border-b border-zinc-800">
+                <tr className="bg-gray-50 dark:bg-[#09090b] text-[10px] uppercase font-mono tracking-wider text-gray-500 dark:text-zinc-400 border-b border-gray-200 dark:border-zinc-800">
                   <th className="py-3 px-5 font-semibold">Channel Details</th>
                   <th className="py-3 px-4 font-semibold">Subscribers</th>
                   <th className="py-3 px-4 font-semibold">Search Hits</th>
@@ -201,13 +201,13 @@ export default function AdminDiscoveredPage() {
                   <th className="py-3 px-5 text-right font-semibold">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-800 text-zinc-300 font-sans">
+              <tbody className="divide-y divide-gray-150 dark:divide-zinc-800 text-gray-700 dark:text-zinc-300 font-sans">
                 {filteredList.map(item => {
                   const subsFmt = item.subscribers >= 1000000
-                    ? (item.subscribers / 1000000).toFixed(2).replace(/\.?0+$/, "") + "M"
-                    : item.subscribers >= 1000
-                      ? (item.subscribers / 1000).toFixed(1).replace(/\.?0+$/, "") + "K"
-                      : item.subscribers.toString();
+                      ? (item.subscribers / 1000000).toFixed(2).replace(/\.?0+$/, "") + "M"
+                      : item.subscribers >= 1000
+                        ? (item.subscribers / 1000).toFixed(1).replace(/\.?0+$/, "") + "K"
+                        : item.subscribers.toString();
 
                   const dateFmt = new Date(item.lastViewedAt).toLocaleDateString(undefined, {
                     month: 'short',
@@ -222,14 +222,14 @@ export default function AdminDiscoveredPage() {
                   const isActioning = actioningId === item.channelId
 
                   return (
-                    <tr key={item.id} className="hover:bg-zinc-900/30 transition-colors">
+                    <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-zinc-900/30 transition-colors">
                       {/* details */}
                       <td className="py-3.5 px-5">
                         <div className="flex items-center gap-3">
                           <img
                             src={item.thumbnailUrl ? `/api/image-proxy?url=${encodeURIComponent(item.thumbnailUrl)}` : 'https://www.youtube.com/s/desktop/99863c37/img/avatar_placeholder_dark_32.png'}
                             alt="avatar"
-                            className="w-8 h-8 rounded-full bg-zinc-800 object-cover flex-shrink-0"
+                            className="w-8 h-8 rounded-full bg-gray-100 dark:bg-zinc-800 object-cover flex-shrink-0"
                             onError={(e) => {
                               (e.target as HTMLImageElement).src = 'https://www.youtube.com/s/desktop/99863c37/img/avatar_placeholder_dark_32.png'
                             }}
@@ -238,12 +238,12 @@ export default function AdminDiscoveredPage() {
                             <a
                               href={youtubeUrl}
                               target="_blank"
-                              className="font-semibold text-zinc-100 hover:text-indigo-400 hover:underline block truncate max-w-[200px]"
+                              className="font-semibold text-gray-900 dark:text-zinc-100 hover:text-indigo-650 dark:hover:text-indigo-400 hover:underline block truncate max-w-[200px]"
                               title="Open on YouTube"
                             >
                               {item.channelName}
                             </a>
-                            <span className="text-[10px] text-zinc-500 font-mono block truncate max-w-[150px]">
+                            <span className="text-[10px] text-gray-500 dark:text-zinc-500 font-mono block truncate max-w-[150px]">
                               {handleText}
                             </span>
                           </div>
@@ -252,18 +252,18 @@ export default function AdminDiscoveredPage() {
 
                       {/* subs */}
                       <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span className="font-semibold text-zinc-200">{subsFmt}</span>
+                        <span className="font-semibold text-gray-800 dark:text-zinc-200">{subsFmt}</span>
                       </td>
 
                       {/* Search Hits */}
                       <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-bold px-2 py-0.5 rounded-full text-[10px] font-mono">
+                        <span className="bg-indigo-500/5 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20 font-bold px-2 py-0.5 rounded-full text-[10px] font-mono">
                           📈 {item.viewCount} hits
                         </span>
                       </td>
 
                       {/* Last Searched */}
-                      <td className="py-3.5 px-4 text-[11px] text-zinc-400 font-mono whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-[11px] text-gray-500 dark:text-zinc-400 font-mono whitespace-nowrap">
                         {dateFmt}
                       </td>
 
@@ -274,7 +274,7 @@ export default function AdminDiscoveredPage() {
                           placeholder="e.g. Finance"
                           value={niches[item.channelId] || ''}
                           onChange={e => handleNicheChange(item.channelId, e.target.value)}
-                          className="w-full px-2.5 py-1 border border-zinc-800 rounded-lg bg-[#09090b] text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-indigo-500"
+                          className="w-full px-2.5 py-1 border border-gray-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-[#09090b] text-xs text-gray-900 dark:text-zinc-100 placeholder-gray-400 dark:placeholder-zinc-600 focus:outline-none focus:border-indigo-500"
                         />
                       </td>
 
@@ -285,7 +285,7 @@ export default function AdminDiscoveredPage() {
                           <button
                             onClick={() => handleReject(item.channelId)}
                             disabled={isActioning}
-                            className={`p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors ${
+                            className={`p-1.5 text-gray-400 dark:text-zinc-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/5 dark:hover:bg-rose-500/10 rounded-lg transition-colors ${
                               isActioning ? 'opacity-40 cursor-not-allowed' : ''
                             }`}
                             title="Dismiss Discovery"

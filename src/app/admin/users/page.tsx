@@ -104,11 +104,11 @@ export default function AdminUsersPage() {
       {/* Header */}
       <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-zinc-100 tracking-tight">User Accounts</h1>
-          <p className="text-zinc-400 text-xs mt-1">Manage platform authorization, approvals, roles, and session activities.</p>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-zinc-100 tracking-tight">User Accounts</h1>
+          <p className="text-gray-500 dark:text-zinc-400 text-xs mt-1">Manage platform authorization, approvals, roles, and session activities.</p>
         </div>
         {stats.pending > 0 && (
-          <div className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1.5 rounded-lg text-xs font-mono self-start">
+          <div className="bg-amber-500/10 text-amber-650 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 px-3 py-1.5 rounded-lg text-xs font-mono self-start">
             ⚠️ {stats.pending} accounts pending approval
           </div>
         )}
@@ -117,7 +117,7 @@ export default function AdminUsersPage() {
       {/* Tabs Row & Search bar */}
       <div className="flex flex-col lg:flex-row gap-4 justify-between items-stretch lg:items-center mb-6">
         {/* Navigation Tabs */}
-        <div className="flex gap-1 overflow-x-auto border-b border-zinc-800 pb-0 flex-shrink-0">
+        <div className="flex gap-1 overflow-x-auto border-b border-gray-200 dark:border-zinc-800 pb-0 flex-shrink-0">
           {[
             { id: 'all',      label: 'All',     count: stats.all },
             { id: 'active',   label: 'Active',  count: stats.active },
@@ -130,11 +130,11 @@ export default function AdminUsersPage() {
               onClick={() => setActiveTab(tab.id as any)}
               className={`px-4 py-2 border-b-2 text-xs font-medium transition-all ${
                 activeTab === tab.id
-                  ? 'border-indigo-500 text-indigo-400 font-semibold bg-indigo-500/5'
-                  : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50'
+                  ? 'border-indigo-500 text-indigo-650 dark:text-indigo-400 font-semibold bg-indigo-500/5'
+                  : 'border-transparent text-gray-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-900/50'
               }`}
             >
-              {tab.label} <span className="text-[10px] text-zinc-500 font-normal ml-1">({tab.count})</span>
+              {tab.label} <span className="text-[10px] text-gray-400 dark:text-zinc-500 font-normal ml-1">({tab.count})</span>
             </button>
           ))}
         </div>
@@ -146,28 +146,28 @@ export default function AdminUsersPage() {
             placeholder="Search by name or email..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 border border-zinc-800 rounded-lg bg-[#121214] text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+            className="w-full pl-9 pr-4 py-2 border border-gray-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-[#121214] text-xs text-gray-900 dark:text-zinc-100 placeholder-gray-400 dark:placeholder-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
           />
-          <span className="absolute left-3 top-2.5 text-zinc-500 text-xs">🔍</span>
+          <span className="absolute left-3 top-2.5 text-gray-400 dark:text-zinc-500 text-xs">🔍</span>
         </div>
       </div>
 
       {/* SaaS Premium Data Table */}
-      <div className="bg-[#121214] border border-zinc-800 rounded-xl overflow-hidden">
+      <div className="bg-white dark:bg-[#121214] border border-gray-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm">
         {loading ? (
-          <div className="p-16 text-center text-zinc-400 text-xs font-mono uppercase tracking-widest flex items-center justify-center gap-2">
-            <div className="w-4 h-4 border-2 border-zinc-700 border-t-indigo-500 rounded-full animate-spin" />
+          <div className="p-16 text-center text-gray-500 dark:text-zinc-400 text-xs font-mono uppercase tracking-widest flex items-center justify-center gap-2">
+            <div className="w-4 h-4 border-2 border-gray-200 dark:border-zinc-700 border-t-indigo-500 rounded-full animate-spin" />
             Loading accounts database...
           </div>
         ) : filteredUsers.length === 0 ? (
-          <div className="p-16 text-center text-zinc-500 text-xs font-mono">
+          <div className="p-16 text-center text-gray-400 dark:text-zinc-500 text-xs font-mono">
             No matching accounts found
           </div>
         ) : (
           <div className="overflow-x-auto w-full">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-[#09090b] text-[10px] uppercase font-mono tracking-wider text-zinc-400 border-b border-zinc-800">
+                <tr className="bg-gray-50 dark:bg-[#09090b] text-[10px] uppercase font-mono tracking-wider text-gray-500 dark:text-zinc-400 border-b border-gray-200 dark:border-zinc-800">
                   <th className="py-3 px-5 font-semibold">User details</th>
                   <th className="py-3 px-4 font-semibold">Status</th>
                   <th className="py-3 px-4 font-semibold">Role</th>
@@ -176,25 +176,25 @@ export default function AdminUsersPage() {
                   <th className="py-3 px-5 text-right font-semibold">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-800 text-zinc-300 font-sans">
+              <tbody className="divide-y divide-gray-150 dark:divide-zinc-800 text-gray-700 dark:text-zinc-300 font-sans">
                 {filteredUsers.map(user => {
                   const isUserUpdating = updating === user.id
 
                   return (
-                    <tr key={user.id} className="hover:bg-zinc-900/30 transition-colors">
+                    <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-zinc-900/30 transition-colors">
                       {/* User Info */}
                       <td className="py-4 px-5">
                         <div className="flex items-center gap-3">
                           {user.image ? (
-                            <img src={user.image} alt="avatar" className="w-8 h-8 rounded-full object-cover bg-zinc-800" />
+                            <img src={user.image} alt="avatar" className="w-8 h-8 rounded-full object-cover bg-gray-100 dark:bg-zinc-800" />
                           ) : (
-                            <div className="w-8 h-8 rounded-full bg-indigo-600/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center font-bold">
+                            <div className="w-8 h-8 rounded-full bg-indigo-600/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20 flex items-center justify-center font-bold">
                               {user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
                             </div>
                           )}
                           <div className="min-w-0">
-                            <p className="font-semibold text-zinc-100 truncate max-w-[180px]">{user.name || 'Anonymous'}</p>
-                            <p className="text-[10px] text-zinc-500 font-mono truncate max-w-[180px]">{user.email}</p>
+                            <p className="font-semibold text-gray-900 dark:text-zinc-100 truncate max-w-[180px]">{user.name || 'Anonymous'}</p>
+                            <p className="text-[10px] text-gray-500 dark:text-zinc-500 font-mono truncate max-w-[180px]">{user.email}</p>
                           </div>
                         </div>
                       </td>
@@ -202,9 +202,9 @@ export default function AdminUsersPage() {
                       {/* Status Badges */}
                       <td className="py-4 px-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-mono border ${
-                          user.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                          user.status === 'pending' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                          'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                          user.status === 'active' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' :
+                          user.status === 'pending' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' :
+                          'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
                         }`}>
                           {user.status.toUpperCase()}
                         </span>
@@ -214,20 +214,20 @@ export default function AdminUsersPage() {
                       <td className="py-4 px-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-mono border ${
                           user.role === 'admin' 
-                            ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' 
-                            : 'bg-zinc-900 text-zinc-400 border-zinc-800'
+                            ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20' 
+                            : 'bg-gray-50 dark:bg-zinc-900 text-gray-600 dark:text-zinc-400 border-gray-200 dark:border-zinc-800'
                         }`}>
                           {user.role.toUpperCase()}
                         </span>
                       </td>
 
                       {/* Last Sign In */}
-                      <td className="py-4 px-4 whitespace-nowrap text-zinc-400 font-mono text-[11px]">
+                      <td className="py-4 px-4 whitespace-nowrap text-gray-500 dark:text-zinc-400 font-mono text-[11px]">
                         {timeAgo(user.lastSignIn)}
                       </td>
 
                       {/* Sign In Count */}
-                      <td className="py-4 px-4 whitespace-nowrap text-zinc-400 font-mono text-[11px]">
+                      <td className="py-4 px-4 whitespace-nowrap text-gray-500 dark:text-zinc-400 font-mono text-[11px]">
                         {user.signInCount} hits
                       </td>
 
@@ -250,7 +250,7 @@ export default function AdminUsersPage() {
                             <button
                               onClick={() => update(user.id, { status: 'active' })}
                               disabled={isUserUpdating}
-                              className="px-2.5 py-1 bg-zinc-800 border border-zinc-700 text-zinc-200 hover:text-white rounded text-[10px] font-semibold transition-colors disabled:opacity-50"
+                              className="px-2.5 py-1 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-700 hover:text-gray-900 dark:hover:text-white rounded text-[10px] font-semibold transition-colors disabled:opacity-50"
                             >
                               Unblock
                             </button>
@@ -259,7 +259,7 @@ export default function AdminUsersPage() {
                               <button
                                 onClick={() => update(user.id, { status: 'blocked' })}
                                 disabled={isUserUpdating}
-                                className="px-2.5 py-1 bg-zinc-800 border border-zinc-700 text-rose-400 hover:bg-rose-500/10 rounded text-[10px] font-semibold transition-colors disabled:opacity-50"
+                                className="px-2.5 py-1 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded text-[10px] font-semibold transition-colors disabled:opacity-50"
                               >
                                 Block
                               </button>
@@ -271,7 +271,7 @@ export default function AdminUsersPage() {
                             <button
                               onClick={() => update(user.id, { role: 'user' })}
                               disabled={isUserUpdating}
-                              className="px-2.5 py-1 bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-zinc-200 rounded text-[10px] font-semibold transition-colors disabled:opacity-50"
+                              className="px-2.5 py-1 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-gray-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-200 rounded text-[10px] font-semibold transition-colors disabled:opacity-50"
                             >
                               Remove Admin
                             </button>
@@ -279,7 +279,7 @@ export default function AdminUsersPage() {
                             <button
                               onClick={() => update(user.id, { role: 'admin' })}
                               disabled={isUserUpdating}
-                              className="px-2.5 py-1 bg-zinc-800 border border-zinc-700 text-indigo-400 hover:bg-indigo-500/10 rounded text-[10px] font-semibold transition-colors disabled:opacity-50"
+                              className="px-2.5 py-1 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded text-[10px] font-semibold transition-colors disabled:opacity-50"
                             >
                               Make Admin
                             </button>
@@ -288,7 +288,7 @@ export default function AdminUsersPage() {
                           {/* Delete Action */}
                           <button
                             onClick={() => deleteUser(user.id, user.name || user.email)}
-                            className="p-1 hover:bg-rose-500/10 text-zinc-500 hover:text-rose-400 rounded transition-colors"
+                            className="p-1 hover:bg-rose-50 dark:hover:bg-rose-500/10 text-gray-400 dark:text-zinc-500 hover:text-rose-600 dark:hover:text-rose-400 rounded transition-colors"
                             title="Delete User"
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

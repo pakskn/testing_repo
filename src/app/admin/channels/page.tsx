@@ -132,13 +132,13 @@ export default function AdminChannels() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-xl font-bold text-zinc-100 tracking-tight">Channels Index</h1>
-          <p className="text-zinc-400 text-xs mt-1">{total} total records in channels library.</p>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-zinc-100 tracking-tight">Channels Index</h1>
+          <p className="text-gray-500 dark:text-zinc-400 text-xs mt-1">{total} total records in channels library.</p>
         </div>
         <div className="flex items-center gap-2 self-start sm:self-center">
           <button
             onClick={handleExportCSV}
-            className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 text-zinc-300 rounded-lg text-xs font-semibold hover:bg-zinc-800 hover:text-white transition-all active:scale-95"
+            className="px-3 py-1.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-750 dark:text-zinc-300 rounded-lg text-xs font-semibold hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-gray-950 dark:hover:text-white transition-all active:scale-95"
           >
             📤 Export CSV
           </button>
@@ -152,7 +152,7 @@ export default function AdminChannels() {
       {/* Tabs Row & Search bar */}
       <div className="flex flex-col lg:flex-row gap-4 justify-between items-stretch lg:items-center mb-6">
         {/* Navigation Tabs */}
-        <div className="flex gap-1 overflow-x-auto border-b border-zinc-800 pb-0 flex-shrink-0">
+        <div className="flex gap-1 overflow-x-auto border-b border-gray-200 dark:border-zinc-800 pb-0 flex-shrink-0">
           {[
             { value: '',           label: 'All Channels' },
             { value: 'long_form',  label: 'Long Form' },
@@ -165,8 +165,8 @@ export default function AdminChannels() {
               onClick={() => { setTypeFilter(tab.value); setPage(1) }}
               className={`px-4 py-2 border-b-2 text-xs font-medium transition-all ${
                 typeFilter === tab.value
-                  ? 'border-indigo-500 text-indigo-400 font-semibold bg-indigo-500/5'
-                  : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50'
+                  ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 font-semibold bg-indigo-500/5'
+                  : 'border-transparent text-gray-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-900/50'
               }`}
             >
               {tab.label}
@@ -181,18 +181,18 @@ export default function AdminChannels() {
             placeholder="Search by name, handle, category..."
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1) }}
-            className="w-full pl-9 pr-4 py-2 border border-zinc-800 rounded-lg bg-[#121214] text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+            className="w-full pl-9 pr-4 py-2 border border-gray-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-[#121214] text-xs text-gray-900 dark:text-zinc-100 placeholder-gray-405 dark:placeholder-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
           />
-          <span className="absolute left-3 top-2.5 text-zinc-500 text-xs">🔍</span>
+          <span className="absolute left-3 top-2.5 text-gray-400 dark:text-zinc-500 text-xs">🔍</span>
         </div>
       </div>
 
       {/* SaaS Premium Data Table */}
-      <div className="bg-[#121214] border border-zinc-800 rounded-xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-[#121214] border border-gray-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto w-full">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-[#09090b] text-[10px] uppercase font-mono tracking-wider text-zinc-400 border-b border-zinc-800">
+              <tr className="bg-gray-50 dark:bg-[#09090b] text-[10px] uppercase font-mono tracking-wider text-gray-500 dark:text-zinc-400 border-b border-gray-200 dark:border-zinc-800">
                 <th className="py-3 px-5 font-semibold">Channel Details</th>
                 <th className="py-3 px-4 font-semibold">Type</th>
                 <th className="py-3 px-4 font-semibold">Category</th>
@@ -205,51 +205,51 @@ export default function AdminChannels() {
                 <th className="py-3 px-5 text-right font-semibold">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800 text-zinc-300 font-sans">
+            <tbody className="divide-y divide-gray-150 dark:divide-zinc-800 text-gray-700 dark:text-zinc-300 font-sans">
               {loading ? (
-                <tr><td colSpan={10} className="px-5 py-12 text-center text-zinc-500 font-mono tracking-wider">Loading channels library...</td></tr>
+                <tr><td colSpan={10} className="px-5 py-12 text-center text-gray-450 dark:text-zinc-500 font-mono tracking-wider">Loading channels library...</td></tr>
               ) : channels.length === 0 ? (
-                <tr><td colSpan={10} className="px-5 py-12 text-center text-zinc-500 font-mono">No channels indexed</td></tr>
+                <tr><td colSpan={10} className="px-5 py-12 text-center text-gray-455 dark:text-zinc-500 font-mono">No channels indexed</td></tr>
               ) : channels.map((ch, i) => (
-                <tr key={ch.id} className={`hover:bg-zinc-900/30 transition-colors ${!ch.isActive ? 'opacity-40' : ''}`}>
+                <tr key={ch.id} className={`hover:bg-gray-50 dark:hover:bg-zinc-900/30 transition-colors ${!ch.isActive ? 'opacity-40' : ''}`}>
                   {/* Channel detail */}
                   <td className="py-3.5 px-5">
                     <div className="flex items-center gap-2.5 min-w-[180px]">
                       {ch.thumbnailUrl ? (
-                        <img src={ch.thumbnailUrl} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0 bg-zinc-800" />
+                        <img src={ch.thumbnailUrl} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0 bg-gray-100 dark:bg-zinc-800" />
                       ) : (
-                        <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center font-bold text-zinc-400">
+                        <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center font-bold text-gray-550 dark:text-zinc-400">
                           {ch.channelName.charAt(0).toUpperCase()}
                         </div>
                       )}
                       <div className="min-w-0">
-                        <p className="font-semibold text-zinc-100 truncate max-w-[140px]">{ch.channelName}</p>
-                        <p className="text-[10px] text-zinc-500 font-mono truncate max-w-[140px]">{ch.channelHandle || ch.channelId.slice(0,12)+'...'}</p>
+                        <p className="font-semibold text-gray-900 dark:text-zinc-100 truncate max-w-[140px]">{ch.channelName}</p>
+                        <p className="text-[10px] text-gray-500 dark:text-zinc-500 font-mono truncate max-w-[140px]">{ch.channelHandle || ch.channelId.slice(0,12)+'...'}</p>
                       </div>
                     </div>
                   </td>
 
                   {/* Type */}
                   <td className="py-3.5 px-4 whitespace-nowrap">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono border bg-zinc-900 border-zinc-800 text-zinc-400">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono border bg-gray-50 dark:bg-zinc-900 border-gray-200 dark:border-zinc-800 text-gray-600 dark:text-zinc-400">
                       {TYPE_LABELS[ch.channelType] || ch.channelType}
                     </span>
                   </td>
 
                   {/* Category */}
-                  <td className="py-3.5 px-4 text-zinc-400 font-mono text-[11px] whitespace-nowrap">{ch.niche || '—'}</td>
+                  <td className="py-3.5 px-4 text-gray-500 dark:text-zinc-400 font-mono text-[11px] whitespace-nowrap">{ch.niche || '—'}</td>
 
                   {/* Subscribers */}
-                  <td className="py-3.5 px-4 text-zinc-300 font-semibold font-mono whitespace-nowrap">{fmt(ch.subscribers)}</td>
+                  <td className="py-3.5 px-4 text-gray-800 dark:text-zinc-300 font-semibold font-mono whitespace-nowrap">{fmt(ch.subscribers)}</td>
 
                   {/* Avg Views */}
-                  <td className="py-3.5 px-4 text-zinc-400 font-mono whitespace-nowrap">{fmt(ch.avgViewsPerVideo)}</td>
+                  <td className="py-3.5 px-4 text-gray-600 dark:text-zinc-400 font-mono whitespace-nowrap">{fmt(ch.avgViewsPerVideo)}</td>
 
                   {/* Outlier */}
                   <td className="py-3.5 px-4 whitespace-nowrap font-mono">
                     <span className={`font-bold ${
-                      ch.outlierScore >= 5 ? 'text-emerald-400' :
-                      ch.outlierScore >= 2 ? 'text-amber-400' : 'text-rose-400'
+                      ch.outlierScore >= 5 ? 'text-emerald-600 dark:text-emerald-400' :
+                      ch.outlierScore >= 2 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'
                     }`}>{ch.outlierScore.toFixed(2)}x</span>
                   </td>
 
@@ -257,7 +257,7 @@ export default function AdminChannels() {
                   <td className="py-3.5 px-4 whitespace-nowrap">
                     <button
                       onClick={() => toggle(ch.id, 'isMonetized', ch.isMonetized)}
-                      className={`relative w-8 h-4.5 rounded-full transition-colors ${ch.isMonetized ? 'bg-indigo-600' : 'bg-zinc-800'}`}
+                      className={`relative w-8 h-4.5 rounded-full transition-colors ${ch.isMonetized ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-zinc-800'}`}
                     >
                       <span className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform ${ch.isMonetized ? 'translate-x-3.5' : ''}`} />
                     </button>
@@ -267,7 +267,7 @@ export default function AdminChannels() {
                   <td className="py-3.5 px-4 whitespace-nowrap">
                     <button
                       onClick={() => toggle(ch.id, 'isActive', ch.isActive)}
-                      className={`relative w-8 h-4.5 rounded-full transition-colors ${ch.isActive ? 'bg-indigo-600' : 'bg-zinc-800'}`}
+                      className={`relative w-8 h-4.5 rounded-full transition-colors ${ch.isActive ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-zinc-800'}`}
                     >
                       <span className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform ${ch.isActive ? 'translate-x-3.5' : ''}`} />
                     </button>
@@ -277,9 +277,9 @@ export default function AdminChannels() {
                   <td className="py-3.5 px-4 whitespace-nowrap">
                     <div className="flex gap-0.5 font-mono text-[9px]">
                       <button onClick={() => moveOrder(ch.id, ch.sortOrder, 'up')}
-                        className="px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 hover:text-white rounded" title="Move up">▲</button>
+                        className="px-1.5 py-0.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:text-gray-950 dark:hover:text-white rounded" title="Move up">▲</button>
                       <button onClick={() => moveOrder(ch.id, ch.sortOrder, 'down')}
-                        className="px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 hover:text-white rounded" title="Move down">▼</button>
+                        className="px-1.5 py-0.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:text-gray-955 dark:hover:text-white rounded" title="Move down">▼</button>
                     </div>
                   </td>
 
@@ -287,13 +287,13 @@ export default function AdminChannels() {
                   <td className="py-3.5 px-5 text-right whitespace-nowrap">
                     <div className="inline-flex items-center gap-1.5">
                       <Link href={`/admin/channels/${ch.id}`}
-                        className="px-2 py-1 bg-zinc-900 border border-zinc-800 hover:text-white rounded text-[10px] font-semibold transition-colors">
+                        className="px-2 py-1 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-700 dark:text-zinc-300 rounded text-[10px] font-semibold hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-gray-950 dark:hover:text-white transition-colors">
                         Edit
                       </Link>
                       <button
                         onClick={() => deleteChannel(ch.id, ch.channelName)}
                         disabled={deleting === ch.id}
-                        className="px-2 py-1 bg-zinc-900 border border-zinc-800 hover:text-rose-400 rounded text-[10px] font-semibold transition-colors disabled:opacity-50"
+                        className="px-2 py-1 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-700 dark:text-zinc-300 rounded text-[10px] font-semibold hover:text-rose-600 dark:hover:text-rose-400 transition-colors disabled:opacity-50"
                       >
                         {deleting === ch.id ? '...' : 'Delete'}
                       </button>
@@ -307,17 +307,17 @@ export default function AdminChannels() {
 
         {/* Pagination */}
         {total > 20 && (
-          <div className="flex items-center justify-between px-5 py-3 border-t border-zinc-800 bg-[#09090b] text-zinc-500 font-mono text-[10px]">
+          <div className="flex items-center justify-between px-5 py-3 border-t border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-[#09090b] text-gray-500 dark:text-zinc-500 font-mono text-[10px]">
             <p>
               Showing {Math.min((page-1)*20+1, total)}–{Math.min(page*20, total)} of {total}
             </p>
             <div className="flex gap-1.5 font-sans">
               <button onClick={() => setPage(p => p-1)} disabled={page === 1}
-                className="px-2.5 py-1 bg-zinc-900 border border-zinc-800 rounded disabled:opacity-40 hover:bg-zinc-800 hover:text-white transition-colors">
+                className="px-2.5 py-1 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-zinc-800 hover:text-gray-900 dark:hover:text-white transition-colors">
                 ← Prev
               </button>
               <button onClick={() => setPage(p => p+1)} disabled={page*20 >= total}
-                className="px-2.5 py-1 bg-zinc-900 border border-zinc-800 rounded disabled:opacity-40 hover:bg-zinc-800 hover:text-white transition-colors">
+                className="px-2.5 py-1 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-zinc-800 hover:text-gray-900 dark:hover:text-white transition-colors">
                 Next →
               </button>
             </div>
