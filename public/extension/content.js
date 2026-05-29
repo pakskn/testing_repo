@@ -1564,12 +1564,15 @@ function showSimilarDashboard(channel, similarChannels) {
   contentArea.insertBefore(dashboard, contentArea.firstChild);
   dashboard.scrollIntoView({ behavior: "smooth", block: "start" });
   
-  document.getElementById("nfd-close-btn").addEventListener("click", () => {
-    dashboard.remove();
-    document.querySelectorAll(".nf-nav-tab").forEach(t => t.classList.remove("active"));
-    const cleanPath = window.location.pathname.split("/competitors")[0];
-    window.history.pushState(null, "", cleanPath);
-  });
+  const closeBtn = dashboard.querySelector("#nfd-close-btn");
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => {
+      dashboard.remove();
+      document.querySelectorAll(".nf-nav-tab").forEach(t => t.classList.remove("active"));
+      const cleanPath = window.location.pathname.split("/competitors")[0];
+      window.history.pushState(null, "", cleanPath);
+    });
+  }
 
   // Perform live async scan on the fly
   scanSimilarChannels(channel).then(async (result) => {
@@ -1879,15 +1882,18 @@ function showSimilarDashboard(channel, similarChannels) {
     
     setupAccordionEvents();
 
-    const sortSelect = document.getElementById("nfd-sort-select");
-    const subsRange = document.getElementById("nfd-subs-range");
-    const subsRangeVal = document.getElementById("nfd-subs-range-val");
+    const sortSelect = dashboard.querySelector("#nfd-sort-select");
+    const subsRange = dashboard.querySelector("#nfd-subs-range");
+    const subsRangeVal = dashboard.querySelector("#nfd-subs-range-val");
     
     const updateDashboard = () => {
+      if (!sortSelect || !subsRange) return;
       const maxSubs = parseInt(subsRange.value);
-      subsRangeVal.innerText = maxSubs >= 1000000 
-        ? (maxSubs / 1000000).toFixed(1) + "M Max" 
-        : (maxSubs / 1000).toFixed(0) + "K Max";
+      if (subsRangeVal) {
+        subsRangeVal.innerText = maxSubs >= 1000000 
+          ? (maxSubs / 1000000).toFixed(1) + "M Max" 
+          : (maxSubs / 1000).toFixed(0) + "K Max";
+      }
         
       let filtered = [...activeChannels].filter(c => c.subscribers <= maxSubs);
       const val = sortSelect.value;
@@ -1900,12 +1906,15 @@ function showSimilarDashboard(channel, similarChannels) {
         filtered.sort((a, b) => b.similarity - a.similarity);
       }
       
-      dashboard.querySelector(".nf-similar-list-items-container").innerHTML = renderList(filtered);
+      const itemsContainer = dashboard.querySelector(".nf-similar-list-items-container");
+      if (itemsContainer) {
+        itemsContainer.innerHTML = renderList(filtered);
+      }
       setupAccordionEvents();
     };
     
-    sortSelect.addEventListener("change", updateDashboard);
-    subsRange.addEventListener("input", updateDashboard);
+    if (sortSelect) sortSelect.addEventListener("change", updateDashboard);
+    if (subsRange) subsRange.addEventListener("input", updateDashboard);
 
     // Staggered Background Scraper Worker to fetch 100% accurate metrics in real-time
     const scrapeLiveChannelMetrics = async (channelId, totalVideos) => {
