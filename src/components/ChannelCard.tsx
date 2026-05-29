@@ -459,7 +459,9 @@ export default function ChannelCard({ channel, onFindSimilar }: {
   const revenueRange = `${formatRevenue(minEarnings)} - ${formatRevenue(maxEarnings)}`
 
   // Oldest Upload Date Check
-  const oldestVideoUpload = getFirstUploadDate(channel.videos, channel.daysSinceStart)
+  const oldestVideoUpload = channel.firstUploadDate
+    ? new Date(channel.firstUploadDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+    : getActualCreationDate(channel.daysSinceStart)
   
   // Dynamic extraction of video language
   const channelLang = channel.videos.find(v => v.language)?.language || 'English'

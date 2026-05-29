@@ -285,6 +285,7 @@ export async function GET(request: NextRequest) {
           shortsVideosCount: true,
           last30dLongUploads: true,
           last30dShortsUploads: true,
+          firstUploadDate: true,
           createdAt: true,
           updatedAt: true,
           videos: {
@@ -333,6 +334,7 @@ export async function GET(request: NextRequest) {
         ...ch,
         totalViews: Number(ch.totalViews),
         monthlyViews: Number(ch.monthlyViews),
+        firstUploadDate: ch.firstUploadDate?.toISOString() ?? null,
         videos: videos.slice(0, 10).map(v => ({
           ...v,
           views: Number(v.views),

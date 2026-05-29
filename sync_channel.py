@@ -213,6 +213,8 @@ def sync_channel(channel_id, custom_db_url=None):
         updated_monthly_views = int(round(ch_details["totalViews"] / max(1, days_since / 30.0)))
         
     # 3. Update Channel Table
+    first_upload_date = datetime.datetime.fromisoformat(oldest_vid["publishedAt"].replace("Z", "+00:00")) if oldest_vid else None
+    
     if is_postgres:
         cur.execute("""
             UPDATE "Channel"
@@ -227,9 +229,10 @@ def sync_channel(channel_id, custom_db_url=None):
                 "last30dLongUploads" = %s,
                 "last30dShortsUploads" = %s,
                 "monthlyViews" = %s,
+                "firstUploadDate" = %s,
                 "updatedAt" = NOW()
             WHERE "channelId" = %s
-        """, (ch_details["channelHandle"], ch_details["subscribers"], ch_details["totalVideos"], ch_details["totalViews"], days_since, country, long_count, shorts_count, last30d_long, last30d_shorts, updated_monthly_views, channel_id))
+        """, (ch_details["channelHandle"], ch_details["subscribers"], ch_details["totalVideos"], ch_details["totalViews"], days_since, country, long_count, shorts_count, last30d_long, last30d_shorts, updated_monthly_views, first_upload_date, channel_id))
     else:
         cur.execute("""
             UPDATE Channel
@@ -244,9 +247,10 @@ def sync_channel(channel_id, custom_db_url=None):
                 last30dLongUploads = ?,
                 last30dShortsUploads = ?,
                 monthlyViews = ?,
+                firstUploadDate = ?,
                 updatedAt = datetime('now')
             WHERE channelId = ?
-        """, (ch_details["channelHandle"], ch_details["subscribers"], ch_details["totalVideos"], ch_details["totalViews"], days_since, country, long_count, shorts_count, last30d_long, last30d_shorts, updated_monthly_views, channel_id))
+        """, (ch_details["channelHandle"], ch_details["subscribers"], ch_details["totalVideos"], ch_details["totalViews"], days_since, country, long_count, shorts_count, last30d_long, last30d_shorts, updated_monthly_views, first_upload_date, channel_id))
         
     # 4. Insert oldest video to fix the 1st Upload Date display
     if oldest_vid:

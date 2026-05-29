@@ -36,6 +36,7 @@ export interface Channel {
   shortsVideosCount?: number
   last30dLongUploads?: number
   last30dShortsUploads?: number
+  firstUploadDate?: string | null
   updatedAt: string
   videos: Video[]
 }

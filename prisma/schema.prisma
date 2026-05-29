@@ -104,6 +104,7 @@ model Channel {
   shortsVideosCount Int      @default(0)
   last30dLongUploads  Int    @default(0)
   last30dShortsUploads Int   @default(0)
+  firstUploadDate     DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   videos            Video[]
