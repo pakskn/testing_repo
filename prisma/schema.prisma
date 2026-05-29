@@ -172,3 +172,22 @@ model ChannelSnapshot {
   @@index([capturedAt])
 }
 
+model DiscoveredChannel {
+  id             String   @id @default(cuid())
+  channelId      String   @unique
+  channelName    String
+  channelHandle  String?
+  thumbnailUrl   String?
+  subscribers    Int      @default(0)
+  viewCount      Int      @default(1)
+  status         String   @default("pending") // pending | imported | rejected
+  lastViewedAt   DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([status])
+  @@index([viewCount])
+  @@index([lastViewedAt])
+}
+
+

@@ -13,6 +13,7 @@ const NAV = [
   { href: '/admin/channels?type=terminated',  icon: '⛔', label: '→ Terminated'   },
   { href: '/admin/users',                 icon: '👥', label: 'Users'              },
   { href: '/admin/tasks',                 icon: '🛠️', label: 'Tasks & Scripts'    },
+  { href: '/admin/discovered',            icon: '📥', label: 'Discovered Queue'   },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

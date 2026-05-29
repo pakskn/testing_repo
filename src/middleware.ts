@@ -62,6 +62,7 @@ export default auth(async function middleware(req) {
                        path.startsWith('/pending') ||
                        path.startsWith('/api/auth') ||
                        path.startsWith('/api/image-proxy') ||
+                       path.startsWith('/api/discovered/report') || // Whitelist discovery report endpoint for Chrome Extension
                        path.startsWith('/_next') ||
                        path === '/favicon.ico'
 
