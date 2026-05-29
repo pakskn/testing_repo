@@ -279,6 +279,7 @@ export async function GET(request: NextRequest) {
           isNano: true,
           avgVideoLength: true,
           shortsRatioLast30d: true,
+          monthlyViews: true,
           createdAt: true,
           updatedAt: true,
           videos: {
@@ -326,6 +327,7 @@ export async function GET(request: NextRequest) {
       return {
         ...ch,
         totalViews: Number(ch.totalViews),
+        monthlyViews: Number(ch.monthlyViews),
         videos: videos.slice(0, 10).map(v => ({
           ...v,
           views: Number(v.views),

@@ -35,12 +35,16 @@ function timeAgo(dateStr: string | null): string {
   return `${Math.floor(days / 365)}y ago`
 }
 
-function getFirstUploadDate(videos: Video[]): string {
-  if (!videos || videos.length === 0) return 'N/A'
+function getFirstUploadDate(videos: Video[], daysSinceStart?: number): string {
+  if (!videos || videos.length === 0) {
+    return daysSinceStart ? getActualCreationDate(daysSinceStart) : 'N/A'
+  }
   const dates = videos
     .map(v => v.publishedAt ? new Date(v.publishedAt).getTime() : 0)
     .filter(t => t > 0)
-  if (dates.length === 0) return 'N/A'
+  if (dates.length === 0) {
+    return daysSinceStart ? getActualCreationDate(daysSinceStart) : 'N/A'
+  }
   const minDate = new Date(Math.min(...dates))
   return minDate.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 }
@@ -303,6 +307,36 @@ function formatAvgVideoLength(seconds: number): string {
   return `${secs}s`
 }
 
+function getEstimatedVideoLength(videos: Video[], dbAvgLength?: number): string {
+  if (dbAvgLength && dbAvgLength > 0) {
+    return formatAvgVideoLength(dbAvgLength);
+  }
+  if (!videos || videos.length === 0) return 'N/A';
+  
+  let totalSeconds = 0;
+  let count = 0;
+  videos.forEach(v => {
+    if (!v.duration) return;
+    const parts = v.duration.split(':').map(Number);
+    let sec = 0;
+    if (parts.length === 3) {
+      sec = parts[0] * 3600 + parts[1] * 60 + parts[2];
+    } else if (parts.length === 2) {
+      sec = parts[0] * 60 + parts[1];
+    } else {
+      sec = parts[0] || 0;
+    }
+    if (sec > 0) {
+      totalSeconds += sec;
+      count++;
+    }
+  });
+  
+  if (count === 0) return 'N/A';
+  const avgSeconds = Math.round(totalSeconds / count);
+  return formatAvgVideoLength(avgSeconds);
+}
+
 export default function ChannelCard({ channel, onFindSimilar }: {
   channel: Channel
   onFindSimilar?: (req: SimilarRequest) => void
@@ -420,7 +454,7 @@ export default function ChannelCard({ channel, onFindSimilar }: {
   const rpmLabel = `$${minRPM.toFixed(2)} - $${maxRPM.toFixed(2)}`
 
   // Oldest Upload Date Check
-  const oldestVideoUpload = getFirstUploadDate(channel.videos)
+  const oldestVideoUpload = getFirstUploadDate(channel.videos, channel.daysSinceStart)
   
   // Dynamic extraction of video language
   const channelLang = channel.videos.find(v => v.language)?.language || 'English'
@@ -487,22 +521,13 @@ export default function ChannelCard({ channel, onFindSimilar }: {
       {/* ── HEADER BLOCK ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5">
         <div className="flex items-center gap-3.5 min-w-0">
-          {/* Avatar wrapped with monetization indicator badge */}
+          {/* Avatar */}
           <div className="relative flex-shrink-0">
             <ChannelAvatar
               channelId={channel.channelId}
               thumbnailUrl={channel.thumbnailUrl}
               channelName={channel.channelName}
             />
-            {/* Rich Top Monetization status indicator next to avatar icon */}
-            <span
-              title={monetTooltip}
-              className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white dark:border-[#09090b] shadow-sm flex items-center justify-center text-[9px] text-white font-bold select-none cursor-help ${monetBadgeColor}`}
-            >
-              {monetizationState === 'monetized' && '✓'}
-              {monetizationState === 'demonetized' && '×'}
-              {monetizationState === 'checking' && '?'}
-            </span>
           </div>
 
           <div className="min-w-0">
@@ -515,6 +540,14 @@ export default function ChannelCard({ channel, onFindSimilar }: {
               >
                 {channel.channelName}
               </a>
+              
+              {/* Premium Pill Dollar Monetization Badge */}
+              <span
+                title={monetTooltip}
+                className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-extrabold border shadow-sm select-none cursor-help font-mono transition-colors ${monetBgColor} ${monetTextColor}`}
+              >
+                $
+              </span>
               
               {/* Only show Faceless Badge */}
               {channel.isFaceless && (
@@ -744,7 +777,7 @@ export default function ChannelCard({ channel, onFindSimilar }: {
             {/* 8. Average Video Length Card */}
             <div className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3.5 flex flex-col justify-between shadow-sm hover:border-gray-200 dark:hover:border-zinc-800 transition-colors">
               <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Avg Video Length</span>
-              <p className="text-xs font-bold text-gray-800 dark:text-zinc-200 mt-2 font-mono">{formatAvgVideoLength(channel.avgVideoLength || 0)}</p>
+              <p className="text-xs font-bold text-gray-800 dark:text-zinc-200 mt-2 font-mono">{getEstimatedVideoLength(channel.videos, channel.avgVideoLength)}</p>
             </div>
 
             {/* 9. Outlier Growth Card */}
