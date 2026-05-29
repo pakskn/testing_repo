@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import requests
 import sqlite3
@@ -15,13 +16,29 @@ if not DB_URL or not API_KEY:
     print("Error: Missing DATABASE_URL or YOUTUBE_API_KEY in environment.")
     sys.exit(1)
 
-def get_oldest_video_from_playlist(playlist_id, api_key):
+def parse_iso_duration(duration_str):
+    """Converts ISO 8601 duration (e.g. PT22M39S, PT1H7M) to total seconds."""
+    if not duration_str:
+        return 0
+    pattern = re.compile(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?')
+    match = pattern.match(duration_str)
+    if not match:
+        return 0
+    hours = int(match.group(1)) if match.group(1) else 0
+    minutes = int(match.group(2)) if match.group(2) else 0
+    seconds = int(match.group(3)) if match.group(3) else 0
+    return hours * 3600 + minutes * 60 + seconds
+
+def fetch_channel_videos_exact_metrics(playlist_id, api_key, total_videos_limit):
+    """
+    Paginates uploads playlist (up to 500 videos), groups IDs in batches of 50,
+    queries contentDetails for durations, and returns exact metrics.
+    """
+    video_ids = []
     next_page_token = None
-    last_items = []
     
-    # Paginate to find the absolute oldest video (the last item of the playlist)
-    # Limit to 10 pages to avoid quota depletion for massive channels
-    for page in range(10):
+    # 1. Fetch playlist items
+    for page in range(10): # Fetch up to 500 uploads (highly quota efficient)
         url = f"https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId={playlist_id}&maxResults=50&key={api_key}"
         if next_page_token:
             url += f"&pageToken={next_page_token}"
@@ -30,7 +47,10 @@ def get_oldest_video_from_playlist(playlist_id, api_key):
             items = res.get("items", [])
             if not items:
                 break
-            last_items = items
+            for item in items:
+                v_id = item["snippet"]["resourceId"]["videoId"]
+                pub_at = item["snippet"]["publishedAt"]
+                video_ids.append((v_id, pub_at))
             next_page_token = res.get("nextPageToken")
             if not next_page_token:
                 break
@@ -38,16 +58,67 @@ def get_oldest_video_from_playlist(playlist_id, api_key):
             print(f"Error fetching playlist items: {e}")
             break
             
-    if last_items:
-        oldest_item = last_items[-1]
-        snippet = oldest_item["snippet"]
-        return {
-            "videoId": snippet["resourceId"]["videoId"],
-            "title": snippet["title"],
-            "publishedAt": snippet["publishedAt"],
-            "thumbnailUrl": snippet["thumbnails"].get("high", {}).get("url") or snippet["thumbnails"].get("default", {}).get("url") or ""
+    if not video_ids:
+        return 0, 0, 0, 0, None
+
+    long_count = 0
+    shorts_count = 0
+    last30d_long = 0
+    last30d_shorts = 0
+    
+    now = datetime.datetime.now(datetime.timezone.utc)
+    
+    # 2. Batch duration lookup (50 per query)
+    for i in range(0, len(video_ids), 50):
+        batch = video_ids[i:i+50]
+        batch_ids = [item[0] for item in batch]
+        ids_str = ",".join(batch_ids)
+        
+        url_vid = f"https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id={ids_str}&key={api_key}"
+        try:
+            res_vid = requests.get(url_vid).json()
+            items_vid = res_vid.get("items", [])
+            
+            for item in items_vid:
+                duration_str = item.get("contentDetails", {}).get("duration", "")
+                sec = parse_iso_duration(duration_str)
+                is_short = sec > 0 and sec <= 60
+                
+                published_at_str = item.get("snippet", {}).get("publishedAt", "")
+                if published_at_str:
+                    pub_date = datetime.datetime.fromisoformat(published_at_str.replace("Z", "+00:00"))
+                    age_days = (now - pub_date).days
+                    if age_days <= 30:
+                        if is_short:
+                            last30d_shorts += 1
+                        else:
+                            last30d_long += 1
+                            
+                if is_short:
+                    shorts_count += 1
+                else:
+                    long_count += 1
+        except Exception as e:
+            print(f"Error fetching batch video details: {e}")
+            
+    # 3. Find absolute oldest video from the playlist array
+    # Since playlist items are returned in reverse chronological order, the last one is oldest.
+    oldest_video = None
+    if video_ids:
+        oldest_id, oldest_published = video_ids[-1]
+        oldest_video = {
+            "videoId": oldest_id,
+            "publishedAt": oldest_published,
+            "title": "Oldest Video Placeholder"
         }
-    return None
+        
+    # Scale overall counts if the channel has more than 500 total videos
+    if total_videos_limit > len(video_ids):
+        scale_factor = total_videos_limit / max(1, len(video_ids))
+        long_count = int(round(long_count * scale_factor))
+        shorts_count = total_videos_limit - long_count
+        
+    return long_count, shorts_count, last30d_long, last30d_shorts, oldest_video
 
 def get_channel_details(channel_id, api_key):
     url = f"https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,contentDetails&id={channel_id}&key={api_key}"
@@ -81,23 +152,35 @@ def sync_channel(channel_id, custom_db_url=None):
         print("Failed to fetch channel details.")
         return False
         
-    oldest_vid = None
-    if ch_details.get("uploadsPlaylistId"):
-        oldest_vid = get_oldest_video_from_playlist(ch_details["uploadsPlaylistId"], API_KEY)
+    print(f"Syncing {ch_details['channelName']} ({channel_id})...")
     
-    # Calculate correct daysSinceStart based on publishedAt
+    # 1. Fetch exact long/shorts counts, last 30d uploads, and oldest video details
+    long_count = 0
+    shorts_count = 0
+    last30d_long = 0
+    last30d_shorts = 0
+    oldest_vid = None
+    
+    if ch_details.get("uploadsPlaylistId"):
+        long_count, shorts_count, last30d_long, last30d_shorts, oldest_vid = fetch_channel_videos_exact_metrics(
+            ch_details["uploadsPlaylistId"], API_KEY, ch_details["totalVideos"]
+        )
+    
+    # Calculate days since start based on YouTube Joined Date
     joined_date = datetime.datetime.fromisoformat(ch_details["publishedAt"].replace("Z", "+00:00"))
     now = datetime.datetime.now(datetime.timezone.utc)
     days_since = (now - joined_date).days
     
-    print(f"Syncing {ch_details['channelName']}...")
     print(f" - Handle: {ch_details['channelHandle']}")
     print(f" - Joined Date: {joined_date.strftime('%Y-%m-%d')} ({days_since} days ago)")
+    print(f" - Exact Total Videos: {ch_details['totalVideos']}")
+    print(f" - Exact Long Videos: {long_count} | Exact Shorts: {shorts_count}")
+    print(f" - Last 30d Uploads: Long: {last30d_long} | Shorts: {last30d_shorts}")
+    
     if oldest_vid:
-        safe_title = oldest_vid['title'].encode('ascii', 'ignore').decode()
-        print(f" - Oldest Video: {safe_title} ({oldest_vid['publishedAt']})")
+        print(f" - Oldest Video Date: {oldest_vid['publishedAt']}")
         
-    # Update in Database
+    # 2. Database Connection
     conn = None
     is_postgres = "postgres" in db_url or "postgresql" in db_url
     if is_postgres:
@@ -109,36 +192,27 @@ def sync_channel(channel_id, custom_db_url=None):
         
     cur = conn.cursor()
     
-    # Fetch existing metrics to preserve them and calculate new fields
+    # Fetch existing metrics to preserve monthlyViews and country
     if is_postgres:
-        cur.execute('SELECT "shortsRatioLast30d", "avgViewsPerVideo", "monthlyViews", "country" FROM "Channel" WHERE "channelId" = %s', (channel_id,))
+        cur.execute('SELECT "monthlyViews", "country" FROM "Channel" WHERE "channelId" = %s', (channel_id,))
     else:
-        cur.execute('SELECT shortsRatioLast30d, avgViewsPerVideo, monthlyViews, country FROM Channel WHERE channelId = ?', (channel_id,))
+        cur.execute('SELECT monthlyViews, country FROM Channel WHERE channelId = ?', (channel_id,))
     row = cur.fetchone()
     
-    existing_ratio = 50.0
-    avg_views = 0.0
-    monthly_views = 0
+    existing_monthly_views = 0
     existing_country = None
     if row:
-        existing_ratio = row[0] if row[0] is not None and row[0] > 0 else 50.0
-        avg_views = row[1] if row[1] is not None else 0.0
-        monthly_views = int(row[2]) if row[2] is not None else 0
-        existing_country = row[3]
+        existing_monthly_views = int(row[0]) if row[0] is not None else 0
+        existing_country = row[1]
         
     country = ch_details["country"] or existing_country or "N/A"
     
-    # Calculate video counts
-    shorts_count = int(round(ch_details["totalVideos"] * (existing_ratio / 100.0)))
-    long_count = ch_details["totalVideos"] - shorts_count
-    
-    # Calculate updated monthlyViews
-    monthly_views_est = int(round(avg_views * (ch_details["totalVideos"] / max(1, days_since / 30.0))))
-    updated_monthly_views = max(monthly_views, monthly_views_est)
+    # Preserve scraped monthlyViews
+    updated_monthly_views = existing_monthly_views
     if updated_monthly_views <= 0:
         updated_monthly_views = int(round(ch_details["totalViews"] / max(1, days_since / 30.0)))
         
-    # 1. Update Channel table
+    # 3. Update Channel Table
     if is_postgres:
         cur.execute("""
             UPDATE "Channel"
@@ -150,10 +224,12 @@ def sync_channel(channel_id, custom_db_url=None):
                 "country" = %s,
                 "longVideosCount" = %s,
                 "shortsVideosCount" = %s,
+                "last30dLongUploads" = %s,
+                "last30dShortsUploads" = %s,
                 "monthlyViews" = %s,
                 "updatedAt" = NOW()
             WHERE "channelId" = %s
-        """, (ch_details["channelHandle"], ch_details["subscribers"], ch_details["totalVideos"], ch_details["totalViews"], days_since, country, long_count, shorts_count, updated_monthly_views, channel_id))
+        """, (ch_details["channelHandle"], ch_details["subscribers"], ch_details["totalVideos"], ch_details["totalViews"], days_since, country, long_count, shorts_count, last30d_long, last30d_shorts, updated_monthly_views, channel_id))
     else:
         cur.execute("""
             UPDATE Channel
@@ -165,12 +241,14 @@ def sync_channel(channel_id, custom_db_url=None):
                 country = ?,
                 longVideosCount = ?,
                 shortsVideosCount = ?,
+                last30dLongUploads = ?,
+                last30dShortsUploads = ?,
                 monthlyViews = ?,
                 updatedAt = datetime('now')
             WHERE channelId = ?
-        """, (ch_details["channelHandle"], ch_details["subscribers"], ch_details["totalVideos"], ch_details["totalViews"], days_since, country, long_count, shorts_count, updated_monthly_views, channel_id))
+        """, (ch_details["channelHandle"], ch_details["subscribers"], ch_details["totalVideos"], ch_details["totalViews"], days_since, country, long_count, shorts_count, last30d_long, last30d_shorts, updated_monthly_views, channel_id))
         
-    # 2. Insert oldest video if it exists so 1st upload date is correctly computed
+    # 4. Insert oldest video to fix the 1st Upload Date display
     if oldest_vid:
         if is_postgres:
             cur.execute('SELECT COUNT(*) FROM "Video" WHERE "videoId" = %s', (oldest_vid["videoId"],))
@@ -183,20 +261,22 @@ def sync_channel(channel_id, custom_db_url=None):
             if is_postgres:
                 cur.execute("""
                     INSERT INTO "Video" ("id", "videoId", "channelId", "title", "thumbnailUrl", "views", "duration", "publishedAt", "isShort")
-                    VALUES (%s, %s, %s, %s, %s, 0, '10:00', %s, false)
-                """, (cuid, oldest_vid["videoId"], channel_id, oldest_vid["title"], oldest_vid["thumbnailUrl"], oldest_vid["publishedAt"]))
+                    VALUES (%s, %s, %s, %s, NULL, 0, '10:00', %s, false)
+                """, (cuid, oldest_vid["videoId"], channel_id, oldest_vid["title"], oldest_vid["publishedAt"]))
             else:
                 cur.execute("""
                     INSERT INTO Video (id, videoId, channelId, title, thumbnailUrl, views, duration, publishedAt, isShort)
-                    VALUES (?, ?, ?, ?, ?, 0, '10:00', ?, 0)
-                """, (cuid, oldest_vid["videoId"], channel_id, oldest_vid["title"], oldest_vid["thumbnailUrl"], oldest_vid["publishedAt"]))
+                    VALUES (?, ?, ?, ?, NULL, 0, '10:00', ?, 0)
+                """, (cuid, oldest_vid["videoId"], channel_id, oldest_vid["title"], oldest_vid["publishedAt"]))
                 
     conn.commit()
     cur.close()
     conn.close()
-    print("Sync completed successfully!\n")
+    print("Channel synchronized successfully!\n")
     return True
 
 if __name__ == '__main__':
-    channel_to_sync = "UCC8EelolZsxysEZh4nuzk_Q" # Vintage Memories 66
+    channel_to_sync = "UCKlqrW6bVLBV_ugrx1q_FkQ" # The 3rd Rail True Crime
+    if len(sys.argv) > 1:
+        channel_to_sync = sys.argv[1]
     sync_channel(channel_to_sync)

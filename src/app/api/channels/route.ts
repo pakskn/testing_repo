@@ -283,6 +283,8 @@ export async function GET(request: NextRequest) {
           country: true,
           longVideosCount: true,
           shortsVideosCount: true,
+          last30dLongUploads: true,
+          last30dShortsUploads: true,
           createdAt: true,
           updatedAt: true,
           videos: {

@@ -507,17 +507,17 @@ export default function ChannelCard({ channel, onFindSimilar }: {
   const shortsCountVal = channel.shortsVideosCount || 0;
   const longCountVal = channel.longVideosCount || 0;
   const hasShortsVal = isShortForm
-    ? (longCountVal > 0 ? `Yes (${longCountVal})` : 'No')
-    : (shortsCountVal > 0 ? `Yes (${shortsCountVal})` : 'No');
+    ? (longCountVal > 0 ? 'Yes' : 'No')
+    : (shortsCountVal > 0 ? 'Yes' : 'No');
 
-  // Dynamic last 30d uploads from scroller
+  // Dynamic last 30d uploads from scroller (as fallback)
   const last30dVideos = channel.videos.filter(v => {
     if (!v.publishedAt) return false;
     const ageInDays = (Date.now() - new Date(v.publishedAt).getTime()) / 86400000;
     return ageInDays <= 30;
   });
   
-  const last30dShortsCount = last30dVideos.filter(v => {
+  const last30dShortsCountScroller = last30dVideos.filter(v => {
     if (!v.duration) return false;
     const parts = v.duration.split(':').map(Number);
     let sec = 0;
@@ -527,7 +527,15 @@ export default function ChannelCard({ channel, onFindSimilar }: {
     return sec <= 60;
   }).length;
   
-  const last30dLongCount = last30dVideos.length - last30dShortsCount;
+  const last30dLongCountScroller = last30dVideos.length - last30dShortsCountScroller;
+
+  const last30dLongCount = (channel as any).last30dLongUploads !== undefined && (channel as any).last30dLongUploads !== null
+    ? (channel as any).last30dLongUploads
+    : last30dLongCountScroller;
+
+  const last30dShortsCount = (channel as any).last30dShortsUploads !== undefined && (channel as any).last30dShortsUploads !== null
+    ? (channel as any).last30dShortsUploads
+    : last30dShortsCountScroller;
 
   return (
     <div className="relative bg-white dark:bg-[#09090b] border border-gray-100 dark:border-zinc-800 rounded-xl overflow-hidden hover:border-gray-200 dark:hover:border-zinc-700 transition-colors shadow-sm">
@@ -816,6 +824,18 @@ export default function ChannelCard({ channel, onFindSimilar }: {
               <p className="text-xs font-bold text-gray-800 dark:text-zinc-200 mt-2 font-mono">{formatNumber(monthlyViewsEst)}</p>
             </div>
 
+            {/* 10a. Last 30d Long Views Card */}
+            <div className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3.5 flex flex-col justify-between shadow-sm hover:border-gray-200 dark:hover:border-zinc-800 transition-colors">
+              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Last 30d Long Views</span>
+              <p className="text-xs font-bold text-gray-800 dark:text-zinc-200 mt-2 font-mono">{formatNumber(longViews)}</p>
+            </div>
+
+            {/* 10b. Last 30d Shorts Views Card */}
+            <div className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3.5 flex flex-col justify-between shadow-sm hover:border-gray-200 dark:hover:border-zinc-800 transition-colors">
+              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Last 30d Shorts Views</span>
+              <p className="text-xs font-bold text-gray-800 dark:text-zinc-200 mt-2 font-mono">{formatNumber(shortsViews)}</p>
+            </div>
+
             {/* 11. Last 30 Days Estimated Earnings Card */}
             <div className="bg-white dark:bg-[#09090b] border border-gray-150 dark:border-zinc-850 rounded-xl p-3.5 flex flex-col justify-between shadow-sm hover:border-gray-200 dark:hover:border-zinc-800 transition-colors col-span-2 md:col-span-1">
               <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-semibold">Last 30d Earnings</span>
@@ -846,6 +866,25 @@ export default function ChannelCard({ channel, onFindSimilar }: {
               <p className="text-xs font-bold text-gray-800 dark:text-zinc-200 mt-2 font-mono">{last30dShortsCount}</p>
             </div>
           </div>
+
+          {/* ── Sub-Niches Pill Row (Elegantly displayed under stats boxes) ── */}
+          {subNiches.length > 0 && (
+            <div className="mt-5 pt-4 border-t border-gray-150 dark:border-zinc-800/80">
+              <span className="text-[9px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest font-bold block mb-2">
+                Sub-Niches & Verticals
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {subNiches.map(sn => (
+                  <span
+                    key={sn}
+                    className="bg-indigo-50/50 dark:bg-indigo-950/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100/85 dark:border-indigo-900/30 px-2.5 py-1 rounded-md text-[10px] font-medium font-sans select-none"
+                  >
+                    ✨ {sn}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

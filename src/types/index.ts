@@ -34,6 +34,8 @@ export interface Channel {
   country?: string | null
   longVideosCount?: number
   shortsVideosCount?: number
+  last30dLongUploads?: number
+  last30dShortsUploads?: number
   updatedAt: string
   videos: Video[]
 }

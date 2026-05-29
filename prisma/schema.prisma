@@ -102,6 +102,8 @@ model Channel {
   monthlyViews      BigInt   @default(0)
   longVideosCount   Int      @default(0)
   shortsVideosCount Int      @default(0)
+  last30dLongUploads  Int    @default(0)
+  last30dShortsUploads Int   @default(0)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   videos            Video[]
